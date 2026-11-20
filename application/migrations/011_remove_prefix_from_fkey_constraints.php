@@ -18,6 +18,13 @@ class Migration_Remove_prefix_from_fkey_constraints extends EA_Migration
      */
     public function up(): void
     {
+        // This legacy migration removes prefixes from foreign-key names.
+        // MODUL-Scheduler supports multiple installations in one database,
+        // so custom-prefix installations must retain unique constraint names.
+        if ($this->db->dbprefix !== 'ea_') {
+            return;
+        }
+
         // Drop table constraints.
         $this->db->query(
             'ALTER TABLE `' .
