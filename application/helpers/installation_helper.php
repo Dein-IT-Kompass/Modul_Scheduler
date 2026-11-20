@@ -11,19 +11,61 @@
  * @since       v1.1.0
  * ---------------------------------------------------------------------------- */
 
+const INSTALLATION_STATE_EMPTY = 'empty';
+const INSTALLATION_STATE_PARTIAL = 'partial';
+const INSTALLATION_STATE_INSTALLED = 'installed';
+
 /**
- * Check if Easy!Appointments is installed.
+ * Determine the installation state of the currently configured DB prefix.
  *
- * This function will check some factors to determine if Easy!Appointments is installed or not. It is possible that the
- * installation is properly configure without being recognized by this method.
- *
- * Notice: You can add more checks into this file in order to further check the installation state of the application.
- *
- * @return bool Returns whether E!A is installed or not.
+ * Tables belonging to any other prefix are ignored automatically by
+ * CodeIgniter's configured dbprefix.
  */
-function is_app_installed(): bool
+function get_installation_state(): string
 {
     $CI = &get_instance();
 
-    return $CI->db->table_exists('users');
+    $required_tables = [
+        'roles',
+        'users',
+        'user_settings',
+        'settings',
+        'services',
+        'appointments',
+    ];
+
+    $existing_count = 0;
+
+    foreach ($required_tables as $table) {
+        if ($CI->db->table_exists($table)) {
+            $existing_count++;
+        }
+    }
+
+    if ($existing_count === 0) {
+        return INSTALLATION_STATE_EMPTY;
+    }
+
+    if ($existing_count === count($required_tables)) {
+        return INSTALLATION_STATE_INSTALLED;
+    }
+
+    return INSTALLATION_STATE_PARTIAL;
+}
+
+/**
+ * Check whether the currently configured namespace contains
+ * a complete MODUL-Scheduler installation.
+ */
+function is_app_installed(): bool
+{
+    return get_installation_state() === INSTALLATION_STATE_INSTALLED;
+}
+
+/**
+ * Check whether installation remnants exist for the current prefix.
+ */
+function is_app_partially_installed(): bool
+{
+    return get_installation_state() === INSTALLATION_STATE_PARTIAL;
 }

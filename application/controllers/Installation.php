@@ -40,26 +40,41 @@ class Installation extends EA_Controller
      * Display the installation page.
      */
     public function index(): void
-    {
-        method('get');
+{
+    method('get');
 
-        if (is_app_installed()) {
-            redirect();
-            return;
-        }
-
-        $this->load->view('pages/installation', [
-            'base_url' => config('base_url'),
-        ]);
+    if (is_app_partially_installed()) {
+        show_error(
+            'Für den aktuell konfigurierten Tabellenpräfix wurde eine unvollständige MODUL-Scheduler-Installation erkannt. '
+            . 'Bitte verwenden Sie einen freien Tabellenpräfix oder entfernen Sie ausschließlich die Tabellen dieses Präfixes.',
+            409,
+            'Unvollständige MODUL-Scheduler-Installation',
+        );
     }
 
+    if (is_app_installed()) {
+        redirect();
+        return;
+    }
+
+    $this->load->view('pages/installation', [
+        'base_url' => config('base_url'),
+    ]);
+}
+
     /**
-     * Installs Easy!Appointments on the server.
+     * Installs Module Scheduler on the server.
      */
     public function perform(): void
     {
         try {
             method('post');
+if (is_app_partially_installed()) {
+    throw new RuntimeException(
+        'Für den aktuell konfigurierten Tabellenpräfix existiert bereits eine unvollständige Installation.',
+    );
+}
+
 
             if (is_app_installed()) {
                 return;

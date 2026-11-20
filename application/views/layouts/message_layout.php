@@ -9,9 +9,8 @@
 
     <?php slot('meta'); ?>
 
-    <title><?= vars('page_title') ?> | Easy!Appointments</title>
+    <title><?= vars('page_title') ?> | MODUL-Scheduler</title>
 
-    <link rel="icon" type="image/x-icon" href="<?= asset_url('assets/img/favicon.ico') ?>">
     <link rel="icon" sizes="192x192" href="<?= asset_url('assets/img/logo.png') ?>">
 
     <link rel="stylesheet" type="text/css"
@@ -32,7 +31,7 @@
             <div class="mt-2">
                 <small>
                     Powered by
-                    <a href="https://easyappointments.org">Easy!Appointments</a>
+                    Dein IT-Kompass
 
                     <?php if (vars('legal_notice_url')): ?>
                         <span class="mx-1">|</span>

@@ -14,7 +14,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <title>
-        <?= $subject ?> | Easy!Appointments
+        <?= $subject ?> | MODUL-Scheduler
     </title>
     <style>
         /* -------------------------------------
@@ -410,9 +410,7 @@
                         <tr>
                             <td class="content-block powered-by">
                                 Powered by
-                                <a href="https://easyappointments.org" style="text-decoration: none;">
-                                    Easy!Appointments
-                                </a>
+                                <span>Dein IT-Kompass</span>
                                 |
                                 <a href="<?= e($settings['company_link']) ?>" style="text-decoration: none;">
                                     <?= e($settings['company_name']) ?>

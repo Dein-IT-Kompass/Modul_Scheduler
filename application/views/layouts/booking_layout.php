@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#35A768">
     <meta name="google" content="notranslate">
 
-    <meta property="og:title" content="<?= lang('page_title') . ' ' . e(vars('company_name')) ?> | Easy!Appointments"/>
+    <meta property="og:title" content="<?= lang('page_title') . ' ' . e(vars('company_name')) ?> | MODUL-Scheduler"/>
     <meta property="og:description" content="Book Your Appointment With A Few Clicks"/>
     <meta property="og:url" content="<?= base_url() ?>">
     <meta property="og:image" content="<?= base_url('assets/img/social-card.png') ?>"/>
@@ -15,9 +15,8 @@
 
     <?php slot('meta'); ?>
 
-    <title><?= lang('page_title') . ' ' . e(vars('company_name')) ?> | Easy!Appointments</title>
+    <title><?= lang('page_title') . ' ' . e(vars('company_name')) ?> | MODUL-Scheduler</title>
 
-    <link rel="icon" type="image/x-icon" href="<?= asset_url('assets/img/favicon.ico') ?>">
     <link rel="icon" sizes="192x192" href="<?= asset_url('assets/img/logo.png') ?>">
 
     <link rel="stylesheet" type="text/css" href="<?= asset_url('assets/vendor/cookieconsent/cookieconsent.min.css') ?>">

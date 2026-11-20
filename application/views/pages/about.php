@@ -6,145 +6,85 @@
     <div id="about" class="col-lg-8 offset-lg-2">
 
         <div class="text-center my-5">
-            <img src="<?= base_url('assets/img/logo.png') ?>" alt="Easy!Appointments Logo" class="mb-5">
+            <img src="<?= base_url('assets/img/logo.png') ?>"
+                 alt="MODUL-Scheduler Logo"
+                 class="mb-4">
 
-            <h3>
-                Easy!Appointments
-            </h3>
+            <h3>MODUL-Scheduler</h3>
+
             <h6 class="text-primary">
-                Online Appointment Scheduler
+                Terminverwaltung
             </h6>
         </div>
 
-        <p class="mb-5">
-            <?= lang('about_app_info') ?>
-        </p>
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="fw-light mb-0">
+                    Über MODUL-Scheduler
+                </h5>
+            </div>
+
+            <div class="card-body">
+                <p>
+                    MODUL-Scheduler ist eine flexible Termin- und
+                    Organisationsplattform für unterschiedliche Einsatzbereiche
+                    und Branchen.
+                </p>
+
+                <p class="mb-0">
+                    Entwicklung und Integration:
+                    <strong>Dein IT-Kompass</strong>
+                </p>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="fw-light mb-0">
+                    Version
+                </h5>
+            </div>
+
+            <div class="card-body">
+                <strong><?= config('version') ?></strong>
+            </div>
+        </div>
 
         <div class="card mb-5">
             <div class="card-header">
                 <h5 class="fw-light mb-0">
-                    <?= lang('current_version') ?>
+                    Open-Source-Basis
                 </h5>
             </div>
+
             <div class="card-body">
-                <strong>
-                    <?= config('version') ?>
-                </strong>
-            </div>
-        </div>
+                <p>
+                    MODUL-Scheduler basiert auf dem Open-Source-Projekt
+                    <strong>Easy!Appointments</strong>.
+                </p>
 
-        <h4 class="fw-light mb-3">
-            <?= lang('latest_blog_posts') ?>
-        </h4>
+                <p>
+                    Die Software wird unter den Bedingungen der
+                    GNU General Public License Version 3 (GPL-3.0)
+                    bereitgestellt.
+                </p>
 
-        <div class="card mb-5">
-            <div class="card-body">
-                <?php if (empty(vars('blog_posts'))): ?>
-                    <div class="alert alert-warning mb-0">
-                        <?= lang('blog_posts_load_error') ?>
-                    </div>
-                <?php else: ?>
-                    <ul class="list-group list-group-flush">
-                        <?php foreach (vars('blog_posts') as $post): ?>
-                            <li class="list-group-item d-flex justify-content-between align-items-start">
-                                <div class="me-auto">
-                                    <a href="<?= e($post['link']) ?>" 
-                                       target="_blank" class="text-decoration-none small">
-                                        <?= e($post['title']) ?>
-                                        <i class="fas fa-external-link-alt ms-1 small"></i>
-                                    </a>
-                                </div>
-                                <?php if (!empty($post['pub_date'])): ?>
-                                    <span class="badge bg-light text-muted">
-                                        <?= date('M j, Y', strtotime($post['pub_date'])) ?>
-                                    </span>
-                                <?php endif; ?>
-                            </li>
-                        <?php endforeach; ?>
-                    </ul>
-                <?php endif; ?>
-            </div>
-        </div>
-
-        <h4 class="fw-light mb-3">
-            <?= lang('premium') ?>
-        </h4>
-
-        <p>
-            <?= lang('about_app_premium') ?>
-        </p>
-
-        <div class="mb-5">
-            <a class="btn btn-primary d-block w-100 btn-lg m-auto" href="https://easyappointments.org/premium" target="_blank">
-                <i class="fas fa-crown me-2 text-warning"></i>
-                <?= lang('go_premium') ?>
-            </a>
-        </div>
-
-        <h4 class="fw-light mb-3">
-            <?= lang('support') ?>
-        </h4>
-
-        <p>
-            <?= lang('about_app_support') ?>
-        </p>
-
-        <div class="row mb-5">
-            <div class="col-lg-6 mb-3">
-                <a class="btn btn-outline-secondary d-block" href="https://easyappointments.org" target="_blank">
+                <a class="btn btn-outline-secondary"
+                   href="https://www.gnu.org/licenses/gpl-3.0.en.html"
+                   target="_blank">
                     <i class="fas fa-external-link-alt me-2"></i>
-                    <?= lang('official_website') ?>
-                </a>
-            </div>
-
-            <div class="col-lg-6 mb-3">
-                <a class="btn btn-outline-secondary d-block"
-                   href="https://groups.google.com/forum/#!forum/easy-appointments" target="_blank">
-                    <i class="fas fa-external-link-alt me-2"></i>
-                    <?= lang('support_group') ?>
-                </a>
-            </div>
-
-            <div class="col-lg-6 mb-3">
-                <a class="btn btn-outline-secondary d-block"
-                   href="https://github.com/alextselegidis/easyappointments/issues" target="_blank">
-                    <i class="fas fa-external-link-alt me-2"></i>
-                    <?= lang('project_issues') ?>
-                </a>
-            </div>
-
-            <div class="col-lg-6 mb-3">
-                <a class="btn btn-outline-secondary d-block" href="https://facebook.com/easyappts" target="_blank">
-                    <i class="fas fa-external-link-alt me-2"></i>
-                    Facebook
-                </a>
-            </div>
-
-            <div class="col-lg-6 mb-3">
-                <a class="btn btn-outline-secondary d-block" href="https://x.com/easyappts" target="_blank">
-                    <i class="fas fa-external-link-alt me-2"></i>
-                    X.com
+                    GPL-3.0 Lizenz
                 </a>
             </div>
         </div>
 
-        <h4 class="fw-light mb-3">
-            <?= lang('license') ?>
-        </h4>
-
-        <p>
-            <?= lang('about_app_license') ?>
-        </p>
-
-        <div class="mb-5">
-            <a class="btn btn-outline-secondary d-block w-50 m-auto" href="https://www.gnu.org/licenses/gpl-3.0.en.html"
-               target="_blank">
-                <i class="fas fa-external-link-alt me-2"></i>
-                GPL-3.0
-            </a>
-        </div>
     </div>
 </div>
 
 <?php end_section('content'); ?>
 
+<?php component('backend_footer', [
+    'user_display_name' => vars('user_display_name'),
+]); ?>
+
+<?php end_extend(); ?>
