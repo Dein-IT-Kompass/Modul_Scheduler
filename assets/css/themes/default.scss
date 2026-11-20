@@ -9,8 +9,8 @@
  * @since       v1.5.0
  * ---------------------------------------------------------------------------- */
 
-// Apple Glass Design Theme
-// Inspired by macOS/iOS glassmorphism
+// MODUL-Scheduler Default Scheme
+// Anthracite, light gray and orange accent
 
 $theme: 'glass' !default;
 
@@ -18,32 +18,32 @@ $theme: 'glass' !default;
 // Color system
 //
 
-$white: #fff !default;
-$gray-100: #fbfbfd !default;
-$gray-200: #f5f5f7 !default;
-$gray-300: #e8e8ed !default;
-$gray-400: #d2d2d7 !default;
-$gray-500: #86868b !default;
-$gray-600: #6e6e73 !default;
-$gray-700: #424245 !default;
-$gray-800: #2d2d2d !default;
-$gray-900: #1d1d1f !default;
-$black: #000 !default;
+$white: #ffffff !default;
+$gray-100: #f7f7f7 !default;
+$gray-200: #eeeeee !default;
+$gray-300: #dedede !default;
+$gray-400: #c8c7c7 !default;
+$gray-500: #aaa8a8 !default;
+$gray-600: #8e8c8c !default;
+$gray-700: #625f5f !default;
+$gray-800: #454343 !default;
+$gray-900: #323232 !default;
+$black: #181818 !default;
 
-// Apple-inspired colors
-$blue: #007aff !default;
-$indigo: #5856d6 !default;
-$purple: #af52de !default;
-$pink: #ff2d55 !default;
-$red: #ff3b30 !default;
-$orange: #ff9500 !default;
-$yellow: #ffcc00 !default;
-$green: #34c759 !default;
-$teal: #5ac8fa !default;
-$cyan: #32ade6 !default;
+// Supporting colors
+$blue: #4b87a7 !default;
+$indigo: #625f7f !default;
+$purple: #76517f !default;
+$pink: #b65d7d !default;
+$red: #dc3545 !default;
+$orange: #f3941e !default;
+$yellow: #f4bb45 !default;
+$green: #439a83 !default;
+$teal: #398f83 !default;
+$cyan: #4b87a7 !default;
 
-$primary: #429a82 !default;
-$secondary: $gray-200 !default;
+$primary: $orange !default;
+$secondary: $gray-700 !default;
 $success: $green !default;
 $info: $teal !default;
 $warning: $orange !default;
@@ -70,7 +70,7 @@ $border-radius-pill: 50rem !default;
 
 // Body
 
-$body-bg: $white !default;
+$body-bg: $gray-100 !default;
 $body-color: $gray-900 !default;
 
 // Fonts - Apple SF Pro inspired
@@ -870,4 +870,8 @@ th {
 
 .btn-close {
     --bs-btn-close-focus-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
+}
+
+.bg-success-subtle {
+    background-color: $gray-400 !important;
 }
