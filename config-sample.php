@@ -31,7 +31,7 @@ class Config
     // ------------------------------------------------------------------------
 
     const BASE_URL = 'http://localhost';
-    const LANGUAGE = 'english';
+    const LANGUAGE = 'german';
     const DEBUG_MODE = false;
 
     // ------------------------------------------------------------------------
@@ -42,6 +42,7 @@ class Config
     const DB_NAME = 'easyappointments';
     const DB_USERNAME = 'user';
     const DB_PASSWORD = 'password';
+    const DB_PREFIX = 'ms_';
 
     // ------------------------------------------------------------------------
     // GOOGLE CALENDAR SYNC (Optional - can also be configured via UI)
