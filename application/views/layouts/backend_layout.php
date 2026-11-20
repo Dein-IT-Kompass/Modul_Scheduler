@@ -11,7 +11,7 @@
 
     <title><?= vars('page_title') ?? lang('backend_section') ?> | MODUL Scheduler</title>
 
-    <link rel="icon" sizes="192x192" href="<?= asset_url('assets/img/logo.png') ?>">
+    <link rel="icon" type="image/png" href="<?= base_url('favicon.png') ?>">
 
     <link rel="stylesheet" type="text/css" href="<?= asset_url('assets/vendor/trumbowyg/trumbowyg.min.css') ?>">
     <link rel="stylesheet" type="text/css" href="<?= asset_url('assets/vendor/select2/select2.min.css') ?>">
