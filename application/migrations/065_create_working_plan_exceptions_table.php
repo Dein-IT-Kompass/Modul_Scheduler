@@ -70,12 +70,19 @@ class Migration_Create_working_plan_exceptions_table extends EA_Migration
 
             $this->dbforge->create_table('working_plan_exceptions', true, ['engine' => 'InnoDB']);
 
+            $constraint =
+                $this->db->dbprefix === 'ea_'
+                    ? 'working_plan_exceptions_users_provider'
+                    : $this->db->dbprefix('working_plan_exceptions_users_provider');
+
             $this->db->query(
                 '
                 ALTER TABLE `' .
                     $this->db->dbprefix('working_plan_exceptions') .
                     '`
-                    ADD CONSTRAINT `working_plan_exceptions_users_provider` FOREIGN KEY (`id_users_provider`) REFERENCES `' .
+                    ADD CONSTRAINT `' .
+                    $constraint .
+                    '` FOREIGN KEY (`id_users_provider`) REFERENCES `' .
                     $this->db->dbprefix('users') .
                     '` (`id`)
                     ON DELETE CASCADE
@@ -91,10 +98,17 @@ class Migration_Create_working_plan_exceptions_table extends EA_Migration
     public function down(): void
     {
         if ($this->db->table_exists('working_plan_exceptions')) {
+            $constraint =
+                $this->db->dbprefix === 'ea_'
+                    ? 'working_plan_exceptions_users_provider'
+                    : $this->db->dbprefix('working_plan_exceptions_users_provider');
+
             $this->db->query(
                 'ALTER TABLE `' .
                     $this->db->dbprefix('working_plan_exceptions') .
-                    '` DROP FOREIGN KEY `working_plan_exceptions_users_provider`',
+                    '` DROP FOREIGN KEY `' .
+                    $constraint .
+                    '`',
             );
 
             $this->dbforge->drop_table('working_plan_exceptions');

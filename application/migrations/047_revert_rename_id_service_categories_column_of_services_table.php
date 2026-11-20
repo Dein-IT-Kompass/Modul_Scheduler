@@ -19,8 +19,22 @@ class Migration_Revert_rename_id_service_categories_column_of_services_table ext
     public function up(): void
     {
         if ($this->db->field_exists('id_categories', 'services')) {
+            $old_constraint =
+                $this->db->dbprefix === 'ea_'
+                    ? 'services_categories'
+                    : $this->db->dbprefix('services_categories');
+
+            $new_constraint =
+                $this->db->dbprefix === 'ea_'
+                    ? 'services_service_categories'
+                    : $this->db->dbprefix('services_service_categories');
+
             $this->db->query(
-                'ALTER TABLE `' . $this->db->dbprefix('services') . '` DROP FOREIGN KEY `services_categories`',
+                'ALTER TABLE `' .
+                    $this->db->dbprefix('services') .
+                    '` DROP FOREIGN KEY `' .
+                    $old_constraint .
+                    '`',
             );
 
             $fields = [
@@ -38,7 +52,9 @@ class Migration_Revert_rename_id_service_categories_column_of_services_table ext
                 ALTER TABLE `' .
                     $this->db->dbprefix('services') .
                     '`
-                    ADD CONSTRAINT `services_service_categories` FOREIGN KEY (`id_service_categories`) REFERENCES `' .
+                    ADD CONSTRAINT `' .
+                    $new_constraint .
+                    '` FOREIGN KEY (`id_service_categories`) REFERENCES `' .
                     $this->db->dbprefix('service_categories') .
                     '` (`id`)
                     ON DELETE SET NULL
@@ -54,8 +70,22 @@ class Migration_Revert_rename_id_service_categories_column_of_services_table ext
     public function down(): void
     {
         if ($this->db->field_exists('id_service_categories', 'services')) {
+            $old_constraint =
+                $this->db->dbprefix === 'ea_'
+                    ? 'services_service_categories'
+                    : $this->db->dbprefix('services_service_categories');
+
+            $new_constraint =
+                $this->db->dbprefix === 'ea_'
+                    ? 'services_categories'
+                    : $this->db->dbprefix('services_categories');
+
             $this->db->query(
-                'ALTER TABLE `' . $this->db->dbprefix('services') . '` DROP FOREIGN KEY `services_service_categories`',
+                'ALTER TABLE `' .
+                    $this->db->dbprefix('services') .
+                    '` DROP FOREIGN KEY `' .
+                    $old_constraint .
+                    '`',
             );
 
             $fields = [
@@ -73,7 +103,9 @@ class Migration_Revert_rename_id_service_categories_column_of_services_table ext
                 ALTER TABLE `' .
                     $this->db->dbprefix('services') .
                     '`
-                    ADD CONSTRAINT `services_categories` FOREIGN KEY (`id_categories`) REFERENCES `' .
+                    ADD CONSTRAINT `' .
+                    $new_constraint .
+                    '` FOREIGN KEY (`id_categories`) REFERENCES `' .
                     $this->db->dbprefix('service_categories') .
                     '` (`id`)
                     ON DELETE SET NULL

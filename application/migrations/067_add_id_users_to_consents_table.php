@@ -34,12 +34,19 @@ class Migration_Add_id_users_to_consents_table extends EA_Migration
                 ],
             ]);
 
+            $constraint =
+                $this->db->dbprefix === 'ea_'
+                    ? 'consents_users'
+                    : $this->db->dbprefix('consents_users');
+
             $this->db->query(
                 '
                 ALTER TABLE `' .
                     $this->db->dbprefix('consents') .
                     '`
-                ADD CONSTRAINT `consents_users` FOREIGN KEY (`id_users`) REFERENCES `' .
+                ADD CONSTRAINT `' .
+                    $constraint .
+                    '` FOREIGN KEY (`id_users`) REFERENCES `' .
                     $this->db->dbprefix('users') .
                     '` (`id`)
                 ON DELETE SET NULL
@@ -54,7 +61,19 @@ class Migration_Add_id_users_to_consents_table extends EA_Migration
     public function down(): void
     {
         if ($this->db->field_exists('id_users', 'consents')) {
-            $this->db->query('ALTER TABLE `' . $this->db->dbprefix('consents') . '` DROP FOREIGN KEY `consents_users`');
+            $constraint =
+                $this->db->dbprefix === 'ea_'
+                    ? 'consents_users'
+                    : $this->db->dbprefix('consents_users');
+
+            $this->db->query(
+                'ALTER TABLE `' .
+                    $this->db->dbprefix('consents') .
+                    '` DROP FOREIGN KEY `' .
+                    $constraint .
+                    '`',
+            );
+
             $this->dbforge->drop_column('consents', 'id_users');
         }
     }
