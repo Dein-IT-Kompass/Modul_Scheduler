@@ -28,7 +28,7 @@
 </head>
 <body class="d-flex flex-column h-100">
 
-<main class="flex-shrink-0">
+<main class="flex-grow-1">
 
     <?php component('backend_header', ['active_menu' => vars('active_menu')]); ?>
 

@@ -19,6 +19,243 @@ App.Pages.Calendar = (function () {
 
     const moment = window.moment;
 
+    const CALENDAR_VISIBILITY_STORAGE_KEY =
+        'MODUL.Calendar.EventVisibility';
+
+    const defaultEventVisibility = {
+        appointments: true,
+        unavailabilities: true,
+        blocked_periods: true,
+    };
+
+    function getEventVisibility() {
+        try {
+            const stored = JSON.parse(
+                window.localStorage.getItem(
+                    CALENDAR_VISIBILITY_STORAGE_KEY
+                ) || '{}'
+            );
+
+            return {
+                ...defaultEventVisibility,
+                ...stored,
+            };
+        } catch (error) {
+            return {
+                ...defaultEventVisibility,
+            };
+        }
+    }
+
+    let selectedCalendarIds = [];
+
+    function getCalendarViewFilters() {
+        return {
+            calendar_ids: [
+                ...selectedCalendarIds,
+            ],
+        };
+    }
+
+    function populateCalendarViewFilters() {
+        const calendars =
+            vars('planning_calendars') || [];
+
+        const containerByType = {
+            project: '#calendar-project-options',
+            team: '#calendar-team-options',
+            employee: '#calendar-employee-options',
+            resource: '#calendar-resource-options',
+        };
+
+        Object.values(containerByType).forEach(
+            (selector) => $(selector).empty()
+        );
+
+        calendars.forEach((calendar) => {
+            const container =
+                containerByType[calendar.entity_type];
+
+            if (!container) {
+                return;
+            }
+
+            const checkboxId =
+                `planning-calendar-${calendar.id}`;
+
+            $('<div/>', {
+                class: 'calendar-view-option-row',
+                html: [
+                    $('<input/>', {
+                        type: 'checkbox',
+                        id: checkboxId,
+                        class:
+                            'form-check-input ' +
+                            'calendar-view-filter-option',
+                        value: calendar.id,
+                        checked:
+                            selectedCalendarIds.includes(
+                                Number(calendar.id)
+                            ),
+                    }),
+                    $('<label/>', {
+                        for: checkboxId,
+                        class:
+                            'form-check-label ' +
+                            'calendar-view-option-label',
+                        text: calendar.name,
+                    }),
+                    $('<input/>', {
+                        type: 'color',
+                        class:
+                            'form-control ' +
+                            'form-control-color ' +
+                            'calendar-item-color',
+                        value:
+                            calendar.color ||
+                            '#7cbae8',
+                        title:
+                            'Kalenderfarbe ändern',
+                        'data-calendar-id':
+                            calendar.id,
+                    }),
+                ],
+            }).appendTo(container);
+        });
+
+        Object.entries(containerByType).forEach(
+            ([type, selector]) => {
+                if (!$(selector).children().length) {
+                    $('<div/>', {
+                        class:
+                            'small text-muted px-2 py-2',
+                        text:
+                            'Keine Kalender vorhanden.',
+                    }).appendTo(selector);
+                }
+            }
+        );
+
+        updateCalendarViewFilterCounts();
+    }
+
+    function updateCalendarViewPickerLabel() {
+        const $selected =
+            $('.calendar-view-filter-option:checked');
+
+        const count = $selected.length;
+
+        let label = 'Kalender auswählen';
+
+        if (count === 1) {
+            const inputId =
+                $selected.first().attr('id');
+
+            const selectedLabel = $(
+                `label[for="${inputId}"]`
+            )
+                .text()
+                .trim();
+
+            label = selectedLabel || '1 Kalender aktiv';
+        } else if (count > 1) {
+            label = `${count} Kalender aktiv`;
+        }
+
+        $('#calendar-view-config-label').text(label);
+    }
+
+    function updateCalendarViewFilterCounts() {
+        const calendars =
+            vars('planning_calendars') || [];
+
+        function countType(types) {
+            return selectedCalendarIds.filter(
+                (calendarId) => {
+                    const calendar = calendars.find(
+                        (item) =>
+                            Number(item.id) ===
+                            Number(calendarId)
+                    );
+
+                    return (
+                        calendar &&
+                        types.includes(
+                            calendar.entity_type
+                        )
+                    );
+                }
+            ).length;
+        }
+
+        $('#calendar-project-count').text(
+            countType(['project'])
+        );
+
+        $('#calendar-personnel-count').text(
+            countType([
+                'team',
+                'employee',
+            ])
+        );
+
+        $('#calendar-resource-count').text(
+            countType(['resource'])
+        );
+
+        updateCalendarViewPickerLabel();
+    }
+
+    function saveCalendarViewFilters() {
+        selectedCalendarIds =
+            $('.calendar-view-filter-option:checked')
+                .map(
+                    (index, field) =>
+                        Number($(field).val())
+                )
+                .get();
+
+        updateCalendarViewFilterCounts();
+
+        $('#reload-appointments')
+            .trigger('click');
+    }
+
+    function applyEventVisibilityToControls() {
+        const visibility = getEventVisibility();
+
+        $('.calendar-event-visibility').each(
+            (index, field) => {
+                const eventType =
+                    $(field).data('event-type');
+
+                $(field).prop(
+                    'checked',
+                    visibility[eventType] !== false
+                );
+            }
+        );
+    }
+
+    function saveEventVisibilityFromControls() {
+        const visibility = {};
+
+        $('.calendar-event-visibility').each(
+            (index, field) => {
+                visibility[
+                    $(field).data('event-type')
+                ] = $(field).prop('checked');
+            }
+        );
+
+        window.localStorage.setItem(
+            CALENDAR_VISIBILITY_STORAGE_KEY,
+            JSON.stringify(visibility)
+        );
+
+        $('#reload-appointments').trigger('click');
+    }
+
     /**
      * Add the page event listeners.
      */
@@ -58,6 +295,138 @@ App.Pages.Calendar = (function () {
                 $toggleFullscreen.removeClass('btn-light').addClass('btn-success');
             }
         });
+
+        applyEventVisibilityToControls();
+        populateCalendarViewFilters();
+
+        $calendarPage.on(
+            'change',
+            '.calendar-event-visibility',
+            saveEventVisibilityFromControls
+        );
+
+        $calendarPage.on(
+            'change',
+            '.calendar-view-filter-option',
+            saveCalendarViewFilters
+        );
+
+        $calendarPage.on(
+            'change',
+            '.calendar-item-color',
+            (event) => {
+                const $field =
+                    $(event.currentTarget);
+
+                const calendarId =
+                    Number(
+                        $field.data('calendar-id')
+                    );
+
+                const color =
+                    String($field.val());
+
+                if (!calendarId) {
+                    return;
+                }
+
+                $field.prop('disabled', true);
+
+                $.post(
+                    App.Utils.Url.siteUrl(
+                        'calendar/save_planning_calendar_color'
+                    ),
+                    {
+                        csrf_token: vars('csrf_token'),
+                        calendar_id: calendarId,
+                        color,
+                    }
+                )
+                    .done((response) => {
+                        const calendar = (
+                            vars('planning_calendars') || []
+                        ).find(
+                            (item) =>
+                                Number(item.id) ===
+                                calendarId
+                        );
+
+                        if (calendar) {
+                            calendar.color =
+                                response.color || color;
+                        }
+
+                        App.Layouts.Backend
+                            .displayNotification(
+                                'Kalenderfarbe gespeichert.'
+                            );
+
+                        $('#reload-appointments')
+                            .trigger('click');
+                    })
+                    .fail((xhr) => {
+                        App.Layouts.Backend
+                            .displayNotification(
+                                xhr.responseJSON?.message ||
+                                'Kalenderfarbe konnte nicht gespeichert werden.'
+                            );
+
+                        populateCalendarViewFilters();
+                    })
+                    .always(() => {
+                        $field.prop(
+                            'disabled',
+                            false
+                        );
+                    });
+            }
+        );
+
+
+
+        $calendarPage.on(
+            'click',
+            '#calendar-view-config-button + .dropdown-menu',
+            (event) => {
+                event.stopPropagation();
+            }
+        );
+
+        $calendarPage.on(
+            'click',
+            '#calendar-view-show-all',
+            (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+
+                $('.calendar-event-visibility')
+                    .prop('checked', true);
+
+                $('.calendar-view-filter-option')
+                    .prop('checked', true);
+
+                saveCalendarViewFilters();
+                saveEventVisibilityFromControls();
+            }
+        );
+
+        $calendarPage.on(
+            'click',
+            '#calendar-view-hide-all',
+            (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+
+                $('.calendar-event-visibility')
+                    .prop('checked', false);
+
+                $('.calendar-view-filter-option')
+                    .prop('checked', false);
+
+                saveCalendarViewFilters();
+                saveEventVisibilityFromControls();
+            }
+        );
 
         $insertWorkingPlanException.on('click', () => {
             const providerId = $('#select-filter-item').val();
@@ -153,5 +522,7 @@ App.Pages.Calendar = (function () {
     return {
         addEventListeners,
         getSelectionEndDate,
+        getEventVisibility,
+        getCalendarViewFilters,
     };
 })();

@@ -54,6 +54,8 @@ App.Pages.Installation = (function () {
             csrf_token: vars('csrf_token'),
             admin: getAdminData(),
             company: getCompanyData(),
+            enabled_modules: getEnabledModules(),
+            resource_icon_packs: getResourceIconPacks(),
         };
 
         $.ajax({
@@ -63,7 +65,7 @@ App.Pages.Installation = (function () {
             dataType: 'json',
         }).done(() => {
             $alert
-                .text('Easy!Appointments has been successfully installed!')
+                .text('MODUL-Scheduler wurde erfolgreich installiert!')
                 .addClass('alert-success')
                 .prop('hidden', false);
 
@@ -194,6 +196,26 @@ App.Pages.Installation = (function () {
             password: $password.val(),
             language: $language.val(),
         };
+    }
+
+    function getResourceIconPacks() {
+        const packs = ['core'];
+
+        $('.resource-icon-pack:checked').each((index, field) => {
+            const value = String($(field).val());
+
+            if (value && !packs.includes(value)) {
+                packs.push(value);
+            }
+        });
+
+        return packs;
+    }
+
+    function getEnabledModules() {
+        return $('.product-selection:checked').val() === 'erp'
+            ? ['scheduler', 'erp']
+            : ['scheduler'];
     }
 
     /**

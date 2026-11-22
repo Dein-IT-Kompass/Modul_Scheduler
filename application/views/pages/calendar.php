@@ -1,21 +1,231 @@
 <?php extend('layouts/backend_layout'); ?>
 
+<?php section('styles'); ?>
+<link rel="stylesheet" href="<?= asset_url('assets/css/series_planner.css') ?>">
+<style>
+    #calendar-view-filter-groups {
+        max-height: 52vh;
+        overflow-y: auto;
+    }
+
+    .calendar-view-options {
+        max-height: 220px;
+        overflow-y: auto;
+    }
+
+    .calendar-view-option-label {
+        font-size: .9rem;
+    }
+
+
+    .calendar-view-option-row {
+        display: flex;
+        align-items: center;
+        gap: .45rem;
+        margin-bottom: .4rem;
+        padding: .15rem .4rem;
+    }
+
+    .calendar-view-option-row .form-check-input {
+        margin: 0;
+        flex: 0 0 auto;
+    }
+
+    .calendar-view-option-row .calendar-view-option-label {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .calendar-item-color {
+        width: 34px;
+        height: 26px;
+        padding: .1rem;
+        flex: 0 0 34px;
+    }
+
+
+    .fc-project-assignment {
+        opacity: .88;
+        border-left-width: 5px !important;
+        border-left-style: solid !important;
+    }
+
+    .fc-project-assignment .fc-event-main {
+        font-weight: 600;
+    }
+</style>
+<?php end_section('styles'); ?>
+
 <?php section('content'); ?>
 
 <div class="container-fluid backend-page pt-0 pb-0" id="calendar-page">
     <div class="row mb-3 text-white py-3 bg-dark" id="calendar-toolbar">
-        <div id="calendar-filter" class="col-lg-3">
+        <div id="calendar-filter" class="col-lg-5">
             <div class="calendar-filter-items">
-                <select id="select-filter-item"
-                        class="form-select col mb-2 mb-lg-0"
+                <div class="d-none">
+                    <label for="select-filter-item"
+                           class="visually-hidden">
+                        Technischer Terminkontext
+                    </label>
+
+                    <select id="select-filter-item"
+                        class="form-select flex-grow-1 mb-2 mb-lg-0"
                         data-tippy-content="<?= lang('select_filter_item_hint') ?>"
                         aria-label="Filter">
                     <!-- JS -->
-                </select>
+                    </select>
+                </div>
+
+                <div class="dropdown w-100">
+                    <button type="button"
+                            id="calendar-view-config-button"
+                            class="btn btn-light dropdown-toggle w-100 text-start d-flex align-items-center"
+                            data-bs-toggle="dropdown"
+                            data-bs-auto-close="outside"
+                            aria-expanded="false">
+                        <i class="fas fa-calendar-alt me-2"></i>
+
+                        <span id="calendar-view-config-label"
+                              class="flex-grow-1">
+                            Alle Kalender
+                        </span>
+                    </button>
+
+                    <div class="dropdown-menu p-3"
+                         style="width: min(440px, 92vw);">
+
+                        <h6 class="dropdown-header px-0 pt-0">
+                            Kalender auswählen
+                        </h6>
+
+                        <p class="small text-muted">
+                            Ausgewählte Projekte, Beschäftigte, Teams und Ressourcen
+                            zeigen automatisch alle zugehörigen Belegungen.
+                        </p>
+
+
+
+                        <p class="small text-muted">
+                            Mehrere Einträge können gleichzeitig aktiviert
+                            werden. Die Auswahl wird mit ODER verknüpft.
+                        </p>
+
+
+                        <div class="accordion accordion-flush"
+                             id="calendar-view-filter-groups">
+
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button type="button"
+                                            class="accordion-button collapsed py-2"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#calendar-filter-projects">
+
+                                        Projekte
+
+                                        <span id="calendar-project-count"
+                                              class="badge bg-secondary ms-2">
+                                            0
+                                        </span>
+                                    </button>
+                                </h2>
+
+                                <div id="calendar-filter-projects"
+                                     class="accordion-collapse collapse">
+
+
+                                    <div id="calendar-project-options"
+                                         class="accordion-body px-1 py-2 calendar-view-options">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button type="button"
+                                            class="accordion-button collapsed py-2"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#calendar-filter-personnel">
+
+                                        Personal
+
+                                        <span id="calendar-personnel-count"
+                                              class="badge bg-secondary ms-2">
+                                            0
+                                        </span>
+                                    </button>
+                                </h2>
+
+                                <div id="calendar-filter-personnel"
+                                     class="accordion-collapse collapse">
+
+
+                                    <div class="px-2 pt-2 small fw-semibold text-muted">
+                                        Teams
+                                    </div>
+
+                                    <div id="calendar-team-options"
+                                         class="px-1 py-2 calendar-view-options">
+                                    </div>
+
+                                    <div class="px-2 pt-2 small fw-semibold text-muted border-top">
+                                        Mitarbeiter
+                                    </div>
+
+                                    <div id="calendar-employee-options"
+                                         class="px-1 py-2 calendar-view-options">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button type="button"
+                                            class="accordion-button collapsed py-2"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#calendar-filter-resources">
+
+                                        Ressourcen
+
+                                        <span id="calendar-resource-count"
+                                              class="badge bg-secondary ms-2">
+                                            0
+                                        </span>
+                                    </button>
+                                </h2>
+
+                                <div id="calendar-filter-resources"
+                                     class="accordion-collapse collapse">
+
+
+                                    <div id="calendar-resource-options"
+                                         class="accordion-body px-1 py-2 calendar-view-options">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <div class="d-flex gap-2">
+                            <button type="button"
+                                    id="calendar-view-show-all"
+                                    class="btn btn-sm btn-outline-primary">
+                                Alle anzeigen
+                            </button>
+
+                            <button type="button"
+                                    id="calendar-view-hide-all"
+                                    class="btn btn-sm btn-outline-secondary">
+                                Alle aus
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div id="calendar-actions" class="col-lg-9 text-md-end">
+        <div id="calendar-actions" class="col-lg-7 text-md-end">
             <?php if (vars('calendar_view') === CALENDAR_VIEW_DEFAULT): ?>
                 <button
                     id="enable-sync"
@@ -57,6 +267,12 @@
                         <li>
                             <a class="dropdown-item" href="#" id="insert-appointment">
                                 <?= lang('appointment') ?>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="#" id="new-appointment-series">
+                                <i class="fas fa-repeat me-2"></i>
+                                Serientermin
                             </a>
                         </li>
                         <li>
@@ -142,6 +358,8 @@
 
 <?php component('working_plan_exceptions_modal'); ?>
 
+<?php component('series_planner_modal'); ?>
+
 <?php end_section('content'); ?>
 
 <?php section('scripts'); ?>
@@ -161,6 +379,7 @@
     <script src="<?= asset_url('assets/js/http/caldav_http_client.js') ?>"></script>
 <?php endif; ?>
 <script src="<?= asset_url('assets/js/pages/calendar.js') ?>"></script>
+<script src="<?= asset_url('assets/js/pages/series_planner.js') ?>"></script>
 
 <?php end_section('scripts'); ?>
 

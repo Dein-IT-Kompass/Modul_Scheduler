@@ -48,41 +48,95 @@
             <?php $hidden = can('view', PRIV_SERVICES) ? '' : 'd-none'; ?>
             <?php $active = $active_menu == PRIV_SERVICES ? 'active' : ''; ?>
             <li class="nav-item dropdown text-center <?= $active . $hidden ?>" style="min-width: 100px;">
-                <a class="nav-link dropdown-toggle text-white fw-light py-3 px-3" href="#" data-bs-toggle="dropdown"
-                   data-tippy-content="<?= lang('manage_services_hint') ?>">
-                    <i class="fas fa-business-time me-2"></i>
-                    <?= lang('services') ?>
+                <a class="nav-link dropdown-toggle text-white fw-light py-3 px-3"
+                   href="#"
+                   data-bs-toggle="dropdown"
+                   data-tippy-content="Leistungen und Leistungskategorien verwalten">
+                    <i class="fas fa-briefcase me-2"></i>
+                    Leistungen
                 </a>
+
                 <div class="dropdown-menu dropdown-menu-end">
                     <a class="dropdown-item" href="<?= site_url('services') ?>">
-                        <?= lang('services') ?>
+                        <i class="fas fa-clipboard-list me-2"></i>
+                        Leistungen
                     </a>
+
                     <a class="dropdown-item" href="<?= site_url('service_categories') ?>">
-                        <?= lang('categories') ?>
+                        <i class="fas fa-folder-open me-2"></i>
+                        Leistungskategorien
                     </a>
                 </div>
             </li>
 
             <?php $hidden = can('view', PRIV_USERS) ? '' : 'd-none'; ?>
             <?php $active = $active_menu == PRIV_USERS ? 'active' : ''; ?>
-            <li class="nav-item dropdown text-center <?= $active . $hidden ?>" style="min-width: 100px;">
-                <a class="nav-link dropdown-toggle text-white fw-light py-3 px-3" href="#" data-bs-toggle="dropdown"
-                   data-tippy-content="<?= lang('manage_users_hint') ?>">
-                    <i class="fas fa-users me-2"></i>
-                    <?= lang('users') ?>
+            <li class="nav-item dropdown text-center <?= $active . $hidden ?>" style="min-width: 110px;">
+                <a class="nav-link dropdown-toggle text-white fw-light py-3 px-3"
+                   href="#"
+                   data-bs-toggle="dropdown"
+                   data-tippy-content="Mitarbeiter, Einsatzplaner und Zugriffsrollen verwalten">
+                    <i class="fas fa-users-cog me-2"></i>
+                    Mitarbeiter
                 </a>
+
                 <div class="dropdown-menu dropdown-menu-end">
                     <a class="dropdown-item" href="<?= site_url('providers') ?>">
-                        <?= lang('providers') ?>
+                        <i class="fas fa-user-clock me-2"></i>
+                        Mitarbeiter
                     </a>
-                    <a class="dropdown-item" href="<?= site_url('secretaries') ?>">
-                        <?= lang('secretaries') ?>
+
+                    <a class="dropdown-item" href="<?= site_url('employee_teams') ?>">
+                        <i class="fas fa-users me-2"></i>
+                        Teams
                     </a>
+
+
+                    <div class="dropdown-divider"></div>
+
                     <a class="dropdown-item" href="<?= site_url('admins') ?>">
-                        <?= lang('admins') ?>
+                        <i class="fas fa-user-shield me-2"></i>
+                        Administratoren
                     </a>
                 </div>
             </li>
+
+            <?php $hidden = can('view', PRIV_USERS) ? '' : 'd-none'; ?>
+            <?php $active = $active_menu === 'planning' ? 'active' : ''; ?>
+            <?php if (module_enabled('erp')): ?>
+<li class="nav-item dropdown text-center <?= $active . $hidden ?>"
+                style="min-width: 105px;">
+                <a class="nav-link dropdown-toggle text-white fw-light py-3 px-3"
+                   href="#"
+                   data-bs-toggle="dropdown"
+                   data-tippy-content="Projekte, Einsätze und Ressourcen verwalten">
+                    <i class="fas fa-project-diagram me-2"></i>
+                    Planung
+                </a>
+
+                <div class="dropdown-menu dropdown-menu-end">
+                    <a class="dropdown-item"
+                       href="<?= site_url('planning_projects') ?>">
+                        <i class="fas fa-tasks me-2"></i>
+                        Projekte / Einsätze
+                    </a>
+
+                    <a class="dropdown-item"
+                       href="<?= site_url('planning_resources') ?>">
+                        <i class="fas fa-tools me-2"></i>
+                        Ressourcen
+                    </a>
+
+                    <a class="dropdown-item"
+                       href="<?= site_url(
+                           'planning_resource_categories'
+                       ) ?>">
+                        <i class="fas fa-folder-tree me-2"></i>
+                        Ressourcenkategorien
+                    </a>
+                </div>
+            </li>
+<?php endif; ?>
 
             <?php $hidden = can('view', PRIV_SYSTEM_SETTINGS) || can('view', PRIV_USER_SETTINGS) ? '' : 'd-none'; ?>
             <?php $active = $active_menu == PRIV_SYSTEM_SETTINGS ? 'active' : ''; ?>

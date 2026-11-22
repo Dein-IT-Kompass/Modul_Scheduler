@@ -128,6 +128,24 @@
                                 </div>
 
                                 <div class="mb-3">
+                                    <label class="form-label">
+                                        Ressourcen
+                                    </label>
+
+                                    <div class="small text-muted mb-2">
+                                        Fahrzeuge, Maschinen, Geräte, Räume oder
+                                        Arbeitsplätze für diesen Termin reservieren.
+                                    </div>
+
+                                    <div id="appointment-resources"
+                                         class="border rounded p-3">
+                                        <span class="text-muted">
+                                            Ressourcen werden geladen …
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
                                     <label for="appointment-meeting-link" class="form-label">
                                         <?= lang('meeting_link') ?>
                                     </label>

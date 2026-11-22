@@ -1,0 +1,22 @@
+{
+  "id": "dance",
+  "name": "Tanz & Tanzschule",
+  "description": "Tanzarten, Unterricht, Training, Workshops und Räumlichkeiten.",
+  "required": false,
+  "icons": [
+    {"id": "waltz", "label": "Walzer / Standard", "source": "modul", "icon": "waltz"},
+    {"id": "tango", "label": "Tango", "source": "modul", "icon": "tango"},
+    {"id": "latin", "label": "Latein", "source": "modul", "icon": "latin"},
+    {"id": "line-dance", "label": "Line Dance", "source": "modul", "icon": "line-dance"},
+    {"id": "hip-hop", "label": "Hip-Hop", "source": "modul", "icon": "hip-hop"},
+    {"id": "kids-dance", "label": "Kindertanz", "source": "modul", "icon": "kids-dance"},
+    {"id": "couple-training", "label": "Paartraining", "source": "modul", "icon": "couple-training"},
+    {"id": "private-couple", "label": "Einzelpaarstunde", "source": "modul", "icon": "private-couple"},
+    {"id": "intensive-training", "label": "Intensivtraining", "source": "modul", "icon": "intensive-training"},
+    {"id": "group-training", "label": "Gruppentraining", "source": "modul", "icon": "group-training"},
+    {"id": "workshop", "label": "Workshop", "source": "modul", "icon": "workshop"},
+    {"id": "dance-floor", "label": "Tanzsaal", "source": "modul", "icon": "dance-floor"},
+    {"id": "training-room", "label": "Trainingsraum", "source": "modul", "icon": "training-room"},
+    {"id": "sound-system", "label": "Musikanlage", "source": "modul", "icon": "sound-system"}
+  ]
+}

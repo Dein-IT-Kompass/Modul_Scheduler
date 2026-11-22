@@ -1,0 +1,23 @@
+{
+  "id": "construction",
+  "name": "Bau, Handwerk und GaLaBau",
+  "description": "Bagger, Baumaschinen, LKW, Transporter und Anhänger.",
+  "required": false,
+  "icons": [
+    {"id": "excavator", "label": "Bagger", "source": "modul", "icon": "excavator"},
+    {"id": "mini-excavator", "label": "Minibagger", "source": "modul", "icon": "mini-excavator"},
+    {"id": "wheel-loader", "label": "Radlader", "source": "modul", "icon": "wheel-loader"},
+    {"id": "small-machine", "label": "Kleinmaschine", "source": "modul", "icon": "small-machine"},
+    {"id": "large-machine", "label": "Großmaschine", "source": "modul", "icon": "large-machine"},
+    {"id": "transporter", "label": "Transporter", "source": "fa", "icon": "fa-truck"},
+    {"id": "trailer-small", "label": "Geräteträger", "source": "modul", "icon": "trailer-small"},
+    {"id": "trailer-box", "label": "Kofferanhänger", "source": "modul", "icon": "trailer-box"},
+    {"id": "trailer-machine", "label": "Maschinenanhänger", "source": "modul", "icon": "trailer-machine"},
+    {"id": "truck-2-axle", "label": "LKW 2-Achser", "source": "modul", "icon": "truck-2-axle"},
+    {"id": "truck-3-axle", "label": "LKW 3-Achser", "source": "modul", "icon": "truck-3-axle"},
+    {"id": "truck-4-axle", "label": "LKW 4-Achser", "source": "modul", "icon": "truck-4-axle"},
+    {"id": "toolbox", "label": "Werkzeugkoffer", "source": "fa", "icon": "fa-toolbox"},
+    {"id": "tools", "label": "Werkzeug", "source": "fa", "icon": "fa-tools"},
+    {"id": "helmet", "label": "Arbeitsschutz", "source": "fa", "icon": "fa-hard-hat"}
+  ]
+}

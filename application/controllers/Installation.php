@@ -82,9 +82,54 @@ if (is_app_partially_installed()) {
 
             check('admin', 'array');
             check('company', 'array');
+            check('enabled_modules', 'array|null');
+            check('resource_icon_packs', 'array|null');
 
             $admin = request('admin');
             $company = request('company');
+
+
+            $allowed_modules = ['scheduler', 'erp'];
+            $enabled_modules = array_values(array_unique(array_intersect(
+                array_map('strval', request('enabled_modules', ['scheduler'])),
+                $allowed_modules
+            )));
+
+            if (!in_array('scheduler', $enabled_modules, true)) {
+                array_unshift($enabled_modules, 'scheduler');
+            }
+
+            $allowed_icon_packs = [
+                'core',
+                'construction',
+                'cleaning',
+                'physiotherapy',
+                'dance',
+            ];
+
+            $resource_icon_packs = array_values(
+                array_unique(
+                    array_filter(
+                        array_map(
+                            'strval',
+                            request(
+                                'resource_icon_packs',
+                                ['core']
+                            )
+                        ),
+                        static fn(string $pack): bool =>
+                            in_array(
+                                $pack,
+                                $allowed_icon_packs,
+                                true
+                            )
+                    )
+                )
+            );
+
+            if (!in_array('core', $resource_icon_packs, true)) {
+                array_unshift($resource_icon_packs, 'core');
+            }
 
             // Validate admin data
             if (empty($admin) || !is_array($admin)) {
@@ -151,6 +196,17 @@ if (is_app_partially_installed()) {
 
             $this->instance->migrate();
 
+            // MODUL-Scheduler defaults for German installations.
+            if ($admin['language'] === 'german') {
+                setting([
+                    'default_timezone' => 'Europe/Berlin',
+                    'first_weekday' => 'monday',
+                    'time_format' => 'military',
+                ]);
+
+                date_default_timezone_set('Europe/Berlin');
+            }
+
             // Insert admin
             $admin['timezone'] = date_default_timezone_get();
             $admin['settings']['username'] = $admin['username'];
@@ -174,6 +230,12 @@ if (is_app_partially_installed()) {
                 'company_name' => $company['company_name'],
                 'company_email' => $company['company_email'],
                 'company_link' => $company['company_link'],
+                'enabled_modules' => json_encode($enabled_modules, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'resource_icon_packs' => json_encode(
+                    $resource_icon_packs,
+                    JSON_UNESCAPED_UNICODE |
+                    JSON_UNESCAPED_SLASHES
+                ),
             ]);
 
             // Service
@@ -181,7 +243,7 @@ if (is_app_partially_installed()) {
                 'name' => 'Service',
                 'duration' => '30',
                 'price' => '0',
-                'currency' => '',
+                'currency' => $admin['language'] === 'german' ? 'EUR' : '',
                 'slot_interval' => 15,
                 'attendants_number' => '1',
             ]);

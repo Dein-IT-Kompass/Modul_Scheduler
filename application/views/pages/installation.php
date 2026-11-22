@@ -162,6 +162,117 @@
                 </div>
             </div>
 
+            <div class="card mb-5">
+                <div class="card-header">
+                    <strong>Branchenausstattung und Symbolpakete</strong>
+                </div>
+
+                <div class="card-body">
+                    <p class="text-muted">
+                        Die Symbole werden lokal mit MODUL-Scheduler ausgeliefert.
+                        Weitere Pakete können später in den allgemeinen
+                        Einstellungen aktiviert werden.
+                    </p>
+
+                    <div class="form-check mb-3">
+                        <input type="checkbox"
+                               class="form-check-input resource-icon-pack"
+                               id="icon-pack-core"
+                               value="core"
+                               checked
+                               disabled>
+
+                        <label class="form-check-label" for="icon-pack-core">
+                            <strong>Grundausstattung</strong><br>
+                            <small class="text-muted">
+                                Gebäude, Räume, Ausstattung und allgemeine Ressourcen.
+                            </small>
+                        </label>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input type="checkbox"
+                               class="form-check-input resource-icon-pack"
+                               id="icon-pack-construction"
+                               value="construction">
+
+                        <label class="form-check-label" for="icon-pack-construction">
+                            <strong>Bau, Handwerk und GaLaBau</strong><br>
+                            <small class="text-muted">
+                                Bagger, Baumaschinen, Anhänger, Transporter und LKW.
+                            </small>
+                        </label>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input type="checkbox"
+                               class="form-check-input resource-icon-pack"
+                               id="icon-pack-cleaning"
+                               value="cleaning">
+
+                        <label class="form-check-label" for="icon-pack-cleaning">
+                            <strong>Reinigung</strong><br>
+                            <small class="text-muted">
+                                Sauger, Reinigungswagen und Reinigungsmaschinen.
+                            </small>
+                        </label>
+                    </div>
+
+                    <div class="form-check">
+                        <input type="checkbox"
+                               class="form-check-input resource-icon-pack"
+                               id="icon-pack-physiotherapy"
+                               value="physiotherapy">
+
+                        <label class="form-check-label" for="icon-pack-physiotherapy">
+                            <strong>Physiotherapie und Gesundheit</strong><br>
+                            <small class="text-muted">
+                                Behandlungsliegen, Therapie- und Trainingsgeräte.
+                            </small>
+                        </label>
+                    </div>
+                </div>
+
+                    <div class="form-check mt-3">
+                        <input type="checkbox"
+                               class="form-check-input resource-icon-pack"
+                               id="icon-pack-dance"
+                               value="dance">
+
+                        <label class="form-check-label"
+                               for="icon-pack-dance">
+                            <strong>Tanz &amp; Tanzschule</strong><br>
+                            <small class="text-muted">
+                                Tanzarten, Paar-/Einzeltraining, Workshops
+                                und Tanzräume.
+                            </small>
+                        </label>
+                    </div>
+            </div>
+
+            <div class="card mb-5" id="module-product-selection">
+                <div class="card-header"><strong>MODUL-Produkte</strong></div>
+                <div class="card-body">
+                    <div class="form-check mb-4">
+                        <input class="form-check-input product-selection" type="radio"
+                               name="product-selection" id="product-scheduler"
+                               value="scheduler" checked>
+                        <label class="form-check-label" for="product-scheduler">
+                            <strong>MODUL Scheduler</strong><br>
+                            <span class="text-muted">Termine, Kunden, Mitarbeiter, Teams, Leistungen und Kalender.</span>
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input product-selection" type="radio"
+                               name="product-selection" id="product-erp" value="erp">
+                        <label class="form-check-label" for="product-erp">
+                            <strong>MODUL Scheduler + ERP</strong><br>
+                            <span class="text-muted">Zusätzlich Projekte, Projektzeitplan, Einsätze, Ressourcenverwaltung und Disposition.</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
             <p class="mb-5">
                 You will be able to set your business logic in the backend settings page after the installation is complete.
                 <br>

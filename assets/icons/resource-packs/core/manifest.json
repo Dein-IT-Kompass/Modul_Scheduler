@@ -1,0 +1,16 @@
+{
+  "id": "core",
+  "name": "Grundausstattung",
+  "description": "Allgemeine Symbole für Räume, Gebäude, Lagerung und Ausstattung.",
+  "required": true,
+  "icons": [
+    {"id": "box", "label": "Box / Lagergut", "source": "fa", "icon": "fa-box"},
+    {"id": "boxes", "label": "Lagerbestand", "source": "fa", "icon": "fa-boxes"},
+    {"id": "building", "label": "Gebäude", "source": "fa", "icon": "fa-building"},
+    {"id": "home", "label": "Kleines Gebäude", "source": "fa", "icon": "fa-home"},
+    {"id": "warehouse", "label": "Halle / Lager", "source": "fa", "icon": "fa-warehouse"},
+    {"id": "room", "label": "Raum", "source": "fa", "icon": "fa-door-open"},
+    {"id": "workplace", "label": "Arbeitsplatz", "source": "fa", "icon": "fa-desktop"},
+    {"id": "chair", "label": "Ausstattung", "source": "fa", "icon": "fa-chair"}
+  ]
+}

@@ -58,6 +58,51 @@ App.Pages.GeneralSettings = (function () {
 
     function deserialize(generalSettings) {
         generalSettings.forEach((generalSetting) => {
+            if (generalSetting.name === 'resource_icon_packs') {
+                let packs = ['core'];
+
+                try {
+                    const parsed = JSON.parse(
+                        generalSetting.value || '[]'
+                    );
+
+                    if (Array.isArray(parsed)) {
+                        packs = ['core', ...parsed];
+                    }
+                } catch (error) {
+                    packs = ['core'];
+                }
+
+                packs = [...new Set(packs)];
+
+                $('.resource-icon-pack-setting').each(
+                    (index, field) => {
+                        $(field).prop(
+                            'checked',
+                            packs.includes(String($(field).val()))
+                        );
+                    }
+                );
+
+                updateResourceIconPacksField();
+
+                return;
+            }
+
+            if (generalSetting.name === 'enabled_modules') {
+                let modules = ['scheduler'];
+                try {
+                    const parsed = JSON.parse(generalSetting.value || '[]');
+                    if (Array.isArray(parsed)) modules = ['scheduler', ...parsed];
+                } catch (error) {
+                    modules = ['scheduler'];
+                }
+                modules = [...new Set(modules)];
+                $('#module-erp').prop('checked', modules.includes('erp'));
+                updateEnabledModulesField();
+                return;
+            }
+
             if (generalSetting.name === 'company_logo' && generalSetting.value) {
                 companyLogoBase64 = generalSetting.value;
                 $companyLogoPreview.attr('src', generalSetting.value);
@@ -76,6 +121,30 @@ App.Pages.GeneralSettings = (function () {
                 ? $field.prop('checked', Boolean(Number(generalSetting.value)))
                 : $field.val(generalSetting.value);
         });
+    }
+
+    function updateResourceIconPacksField() {
+        const packs = ['core'];
+
+        $('.resource-icon-pack-setting:checked').each(
+            (index, field) => {
+                const pack = String($(field).val());
+
+                if (pack && !packs.includes(pack)) {
+                    packs.push(pack);
+                }
+            }
+        );
+
+        $('#resource-icon-packs').val(
+            JSON.stringify(packs)
+        );
+    }
+
+    function updateEnabledModulesField() {
+        const modules = ['scheduler'];
+        if ($('#module-erp').prop('checked')) modules.push('erp');
+        $('#enabled-modules').val(JSON.stringify(modules));
     }
 
     function serialize() {
@@ -169,6 +238,9 @@ App.Pages.GeneralSettings = (function () {
     function initialize() {
         $saveSettings.on('click', onSaveSettingsClick);
 
+        $('.module-setting').on('change', updateEnabledModulesField);
+        updateEnabledModulesField();
+
         $companyLogo.on('change', onCompanyLogoChange);
 
         $removeCompanyLogo.on('click', onRemoveCompanyLogoClick);
@@ -176,6 +248,13 @@ App.Pages.GeneralSettings = (function () {
         $companyColor.on('change', onCompanyColorChange);
 
         $resetCompanyColor.on('click', onResetCompanyColorClick);
+
+        $('.resource-icon-pack-setting').on(
+            'change',
+            updateResourceIconPacksField
+        );
+
+        updateResourceIconPacksField();
 
         const generalSettings = vars('general_settings');
 

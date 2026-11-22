@@ -1,0 +1,17 @@
+{
+  "id": "cleaning",
+  "name": "Reinigung",
+  "description": "Reinigungsmaschinen, Sauger, Wagen und Spezialgeräte.",
+  "required": false,
+  "icons": [
+    {"id": "cleaning-cart", "label": "Reinigungswagen", "source": "modul", "icon": "cleaning-cart"},
+    {"id": "wet-vacuum", "label": "Nasssauger", "source": "modul", "icon": "wet-vacuum"},
+    {"id": "dry-vacuum", "label": "Trockensauger", "source": "modul", "icon": "dry-vacuum"},
+    {"id": "pressure-washer", "label": "Hochdruckreiniger", "source": "modul", "icon": "pressure-washer"},
+    {"id": "scrubber-dryer", "label": "Scheuersaugmaschine", "source": "modul", "icon": "scrubber-dryer"},
+    {"id": "sweeper", "label": "Kehrmaschine", "source": "modul", "icon": "sweeper"},
+    {"id": "broom", "label": "Besen / manuelle Reinigung", "source": "fa", "icon": "fa-broom"},
+    {"id": "spray", "label": "Sprühgerät", "source": "fa", "icon": "fa-spray-can"},
+    {"id": "soap", "label": "Reinigungsmittel", "source": "fa", "icon": "fa-soap"}
+  ]
+}

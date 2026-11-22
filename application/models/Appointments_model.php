@@ -96,12 +96,14 @@ class Appointments_model extends EA_Model
 
         $require_notes = filter_var(setting('require_notes'), FILTER_VALIDATE_BOOLEAN);
 
+        $is_series_appointment = !empty($appointment['id_appointment_series']);
+
         if (
             empty($appointment['start_datetime']) ||
             empty($appointment['end_datetime']) ||
             empty($appointment['id_services']) ||
             empty($appointment['id_users_provider']) ||
-            empty($appointment['id_users_customer']) ||
+            (!$is_series_appointment && empty($appointment['id_users_customer'])) ||
             (empty($appointment['notes']) && $require_notes)
         ) {
             throw new InvalidArgumentException('Not all required fields are provided: ' . print_r($appointment, true));
@@ -153,20 +155,24 @@ class Appointments_model extends EA_Model
         }
 
         if (!filter_var($appointment['is_unavailability'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
-            // Make sure the customer ID really exists in the database.
-            $count = $this->db
-                ->select()
-                ->from('users')
-                ->join('roles', 'roles.id = users.id_roles', 'inner')
-                ->where('users.id', $appointment['id_users_customer'])
-                ->where('roles.slug', DB_SLUG_CUSTOMER)
-                ->get()
-                ->num_rows();
+            // Regular customer appointments require a valid customer.
+            // Series appointments may exist without a customer because
+            // participants are managed separately.
+            if (empty($appointment['id_appointment_series'])) {
+                $count = $this->db
+                    ->select()
+                    ->from('users')
+                    ->join('roles', 'roles.id = users.id_roles', 'inner')
+                    ->where('users.id', $appointment['id_users_customer'])
+                    ->where('roles.slug', DB_SLUG_CUSTOMER)
+                    ->get()
+                    ->num_rows();
 
-            if (!$count) {
-                throw new InvalidArgumentException(
-                    'The appointment customer ID was not found in the database: ' . $appointment['id_users_customer'],
-                );
+                if (!$count) {
+                    throw new InvalidArgumentException(
+                        'The appointment customer ID was not found in the database: ' . $appointment['id_users_customer'],
+                    );
+                }
             }
 
             // Make sure the service ID really exists in the database.

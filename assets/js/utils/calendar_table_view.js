@@ -216,6 +216,10 @@ App.Utils.CalendarTableView = (function () {
         // Appointment fields
 
         $appointmentsModal.find('#appointment-location').val(appointment.location);
+        $(document).trigger(
+            'appointment-resources:load',
+            [appointment.resources || []],
+        );
         $appointmentsModal.find('#appointment-meeting-link').val(appointment.meeting_link);
         $appointmentsModal.find('#appointment-status').val(appointment.status);
         $appointmentsModal.find('#appointment-notes').val(appointment.notes);
@@ -882,6 +886,64 @@ App.Utils.CalendarTableView = (function () {
                 };
             });
         $providerColumn.find('.calendar-wrapper').data('fullCalendar').addEventSource(calendarEvents);
+    }
+
+    /**
+     * Create project assignment events for one provider column.
+     *
+     * @param {jQuery} $providerColumn
+     * @param {Array} assignments
+     */
+    function createProjectAssignments(
+        $providerColumn,
+        assignments
+    ) {
+        if (!assignments?.length) {
+            return;
+        }
+
+        const fullCalendar = $providerColumn
+            .find('.calendar-wrapper')
+            .data('fullCalendar');
+
+        const providerId = Number(
+            $providerColumn.data('provider').id
+        );
+
+        const events = assignments
+            .filter((assignment) =>
+                (assignment.employee_ids || [])
+                    .map(Number)
+                    .includes(providerId)
+            )
+            .map((assignment) => ({
+                id:
+                    `project-assignment-` +
+                    `${assignment.id}-${providerId}`,
+                title:
+                    `${assignment.project_name} · ` +
+                    `${assignment.title}`,
+                start: moment(
+                    assignment.start_datetime
+                ).toDate(),
+                end: moment(
+                    assignment.end_datetime
+                ).toDate(),
+                allDay: false,
+                backgroundColor:
+                    assignment.color || '#f28c28',
+                borderColor:
+                    assignment.color || '#f28c28',
+                textColor: '#ffffff',
+                editable: false,
+                durationEditable: false,
+                startEditable: false,
+                display: 'block',
+                className: 'fc-project-assignment',
+                data: assignment,
+            }));
+
+        fullCalendar.addEventSource(events);
     }
 
     /**
@@ -1582,8 +1644,20 @@ App.Utils.CalendarTableView = (function () {
                                 .getEventSources()
                                 .forEach((eventSource) => eventSource.remove());
                             createNonWorkingHours($providerColumn.find('.calendar-wrapper'), provider);
-                            createAppointments($providerColumn, response.appointments);
-                            createUnavailabilities($providerColumn, response.unavailabilities);
+                            createAppointments(
+                                $providerColumn,
+                                response.appointments
+                            );
+
+                            createProjectAssignments(
+                                $providerColumn,
+                                response.project_assignments || []
+                            );
+
+                            createUnavailabilities(
+                                $providerColumn,
+                                response.unavailabilities
+                            );
                             createBlockedPeriods($providerColumn, response.blocked_periods);
 
                             // Add provider breaks

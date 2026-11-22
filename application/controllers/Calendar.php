@@ -86,6 +86,7 @@ class Calendar extends EA_Controller
         $this->load->model('customers_model');
         $this->load->model('services_model');
         $this->load->model('providers_model');
+        $this->load->model('appointment_resources_model');
         $this->load->model('roles_model');
 
         $this->load->library('accounts');
@@ -194,6 +195,45 @@ class Calendar extends EA_Controller
             );
         }
 
+        // Calendar employees are all provider users, even when
+        // they do not offer a bookable service. This is required for
+        // project assignments and operational scheduling.
+        $this->db
+            ->select(
+                'users.id,
+                 users.first_name,
+                 users.last_name,
+                 users.email'
+            )
+            ->from('users')
+            ->join(
+                'roles',
+                'roles.id = users.id_roles',
+                'inner'
+            )
+            ->where('roles.slug', DB_SLUG_PROVIDER)
+            ->order_by('users.first_name', 'ASC')
+            ->order_by('users.last_name', 'ASC');
+
+        if ($role_slug === DB_SLUG_PROVIDER) {
+            $this->db->where('users.id', (int) $user_id);
+        }
+
+        if ($role_slug === DB_SLUG_SECRETARY) {
+            if ($secretary_providers) {
+                $this->db->where_in(
+                    'users.id',
+                    array_map('intval', $secretary_providers)
+                );
+            } else {
+                $this->db->where('users.id', -1);
+            }
+        }
+
+        $calendar_employees = $this->db
+            ->get()
+            ->result_array();
+
         $available_services = $this->services_model->get_available_services();
 
         // Filter services to only include those that can be served by at least one available provider
@@ -209,6 +249,66 @@ class Calendar extends EA_Controller
                 return isset($provider_service_ids[$service['id']]);
             }),
         );
+
+        $calendar_projects = $this->db
+            ->select('id, name, status')
+            ->where('status !=', 'cancelled')
+            ->order_by('name', 'ASC')
+            ->get('planning_projects')
+            ->result_array();
+
+        $calendar_teams = $this->db
+            ->select('id, name')
+            ->where('is_active', 1)
+            ->order_by('name', 'ASC')
+            ->get('employee_teams')
+            ->result_array();
+
+        $calendar_resources = $this->db
+            ->select(
+                'planning_resources.id,
+                 planning_resources.name,
+                 planning_resource_categories.name AS category_name'
+            )
+            ->from('planning_resources')
+            ->join(
+                'planning_resource_categories',
+                'planning_resource_categories.id =
+                    planning_resources.id_planning_resource_categories',
+                'left'
+            )
+            ->where('planning_resources.is_active', 1)
+            ->order_by(
+                'planning_resource_categories.name',
+                'ASC'
+            )
+            ->order_by('planning_resources.name', 'ASC')
+            ->get()
+            ->result_array();
+
+        $planning_calendars = $this->db
+            ->select(
+                'id,
+                 entity_type,
+                 entity_id,
+                 name,
+                 color'
+            )
+            ->where('is_active', 1)
+            ->order_by(
+                "FIELD(
+                    entity_type,
+                    'project',
+                    'team',
+                    'employee',
+                    'resource'
+                )",
+                '',
+                false
+            )
+            ->order_by('name', 'ASC')
+            ->get('planning_calendars')
+            ->result_array();
 
         $calendar_view = request('view', $user['settings']['calendar_view']);
 
@@ -242,7 +342,12 @@ class Calendar extends EA_Controller
             'privileges' => $privileges,
             'calendar_view' => $calendar_view,
             'available_providers' => filter_sensitive_users_data($available_providers),
+            'calendar_employees' => filter_sensitive_users_data($calendar_employees),
             'available_services' => $available_services,
+            'calendar_projects' => $calendar_projects,
+            'calendar_teams' => $calendar_teams,
+            'calendar_resources' => $calendar_resources,
+            'planning_calendars' => $planning_calendars,
             'secretary_providers' => $secretary_providers,
             'edit_appointment' => $edit_appointment,
             'google_sync_feature' => filter_var(
@@ -286,6 +391,75 @@ class Calendar extends EA_Controller
      * The appointment modal uses this before saving, so that the conflict question comes before the notification
      * question and no changes are performed on the database.
      */
+    public function save_planning_calendar_color(): void
+    {
+        try {
+            method('post');
+
+            if (cannot('edit', PRIV_APPOINTMENTS)) {
+                abort(403, 'Forbidden');
+            }
+
+            check('calendar_id', 'numeric');
+            check('color', 'string');
+
+            $calendar_id = (int) request('calendar_id');
+            $color = trim((string) request('color'));
+
+            if (
+                !preg_match(
+                    '/^#[0-9A-Fa-f]{6}$/',
+                    $color
+                )
+            ) {
+                throw new InvalidArgumentException(
+                    'Die Kalenderfarbe ist ungültig.'
+                );
+            }
+
+            $calendar = $this->db
+                ->get_where(
+                    'planning_calendars',
+                    [
+                        'id' => $calendar_id,
+                        'is_active' => 1,
+                    ]
+                )
+                ->row_array();
+
+            if (!$calendar) {
+                throw new RuntimeException(
+                    'Der Kalender wurde nicht gefunden.'
+                );
+            }
+
+            $this->db
+                ->where('id', $calendar_id)
+                ->update(
+                    'planning_calendars',
+                    [
+                        'color' => strtolower($color),
+                        'update_datetime' =>
+                            date('Y-m-d H:i:s'),
+                    ]
+                );
+
+            if ($this->db->affected_rows() < 0) {
+                throw new RuntimeException(
+                    'Die Kalenderfarbe konnte nicht gespeichert werden.'
+                );
+            }
+
+            json_response([
+                'success' => true,
+                'calendar_id' => $calendar_id,
+                'color' => strtolower($color),
+            ]);
+        } catch (Throwable $e) {
+            json_exception($e);
+        }
+    }
+
     public function check_provider_conflict(): void
     {
         try {
@@ -317,6 +491,52 @@ class Calendar extends EA_Controller
                 'success' => true,
                 'conflict' => $has_conflict,
                 'message' => $has_conflict ? lang('provider_has_conflicting_appointment') : '',
+            ]);
+        } catch (Throwable $e) {
+            json_exception($e);
+        }
+    }
+
+    /**
+     * Get active planning resources for appointment scheduling.
+     */
+    public function get_planning_resources(): void
+    {
+        try {
+            method('get');
+
+            if (cannot('view', PRIV_APPOINTMENTS)) {
+                abort(403, 'Forbidden');
+            }
+
+            $resources = $this->db
+                ->select(
+                    'planning_resources.*,
+                     planning_resource_categories.name AS category_name,
+                     carrier.name AS carrier_name'
+                )
+                ->from('planning_resources')
+                ->join(
+                    'planning_resource_categories',
+                    'planning_resource_categories.id =
+                        planning_resources.id_planning_resource_categories',
+                    'left'
+                )
+                ->join(
+                    'planning_resources AS carrier',
+                    'carrier.id =
+                        planning_resources.id_carrier_resource',
+                    'left'
+                )
+                ->where('planning_resources.is_active', 1)
+                ->order_by('planning_resources.resource_type', 'ASC')
+                ->order_by('planning_resources.name', 'ASC')
+                ->get()
+                ->result_array();
+
+            json_response([
+                'success' => true,
+                'resources' => $resources,
             ]);
         } catch (Throwable $e) {
             json_exception($e);
@@ -385,6 +605,13 @@ class Calendar extends EA_Controller
             if ($appointment_data) {
                 $appointment = $appointment_data;
 
+                $appointment_resources =
+                    is_array($appointment['resources'] ?? null)
+                        ? $appointment['resources']
+                        : [];
+
+                unset($appointment['resources']);
+
                 $required_permissions = !empty($appointment['id'])
                     ? can('edit', PRIV_APPOINTMENTS)
                     : can('add', PRIV_APPOINTMENTS);
@@ -424,6 +651,14 @@ class Calendar extends EA_Controller
                     $exclude_appointment_id,
                 );
 
+                $this->appointment_resources_model
+                    ->validate_assignments(
+                        $appointment_resources,
+                        $appointment['start_datetime'],
+                        $appointment['end_datetime'],
+                        $exclude_appointment_id,
+                    );
+
                 if ($has_conflict && !$force_save) {
                     json_response([
                         'success' => false,
@@ -450,6 +685,12 @@ class Calendar extends EA_Controller
                 $this->appointments_model->optional($appointment, $this->optional_appointment_fields);
 
                 $appointment['id'] = $this->appointments_model->save($appointment);
+
+                $this->appointment_resources_model
+                    ->save_assignments(
+                        (int) $appointment['id'],
+                        $appointment_resources,
+                    );
             }
 
             if (empty($appointment['id'])) {
@@ -751,6 +992,202 @@ class Calendar extends EA_Controller
      *
      * This method will return all the calendar events within a specified period.
      */
+    private function get_planning_calendar_ids(
+        string $event_type,
+        int $reference_id
+    ): array {
+        if (
+            !$this->db->table_exists(
+                'planning_calendar_events'
+            ) ||
+            !$this->db->table_exists(
+                'planning_calendar_event_calendars'
+            )
+        ) {
+            return [];
+        }
+
+        $rows = $this->db
+            ->select(
+                'planning_calendar_event_calendars.id_planning_calendars'
+            )
+            ->from('planning_calendar_events')
+            ->join(
+                'planning_calendar_event_calendars',
+                'planning_calendar_event_calendars.id_planning_calendar_events =
+                    planning_calendar_events.id',
+                'inner'
+            )
+            ->where(
+                'planning_calendar_events.event_type',
+                $event_type
+            )
+            ->where(
+                'planning_calendar_events.reference_id',
+                $reference_id
+            )
+            ->get()
+            ->result_array();
+
+        return array_values(
+            array_unique(
+                array_map(
+                    static fn(array $row): int =>
+                        (int) $row[
+                            'id_planning_calendars'
+                        ],
+                    $rows
+                )
+            )
+        );
+    }
+
+    private function get_project_assignments_for_period(
+        string $start_datetime,
+        string $end_datetime,
+        ?array $employee_ids = null
+    ): array {
+        $this->db
+            ->distinct()
+            ->select(
+                'planning_assignments.*,
+                 planning_projects.name AS project_name,
+                 planning_project_phases.name AS phase_name'
+            )
+            ->from('planning_assignments')
+            ->join(
+                'planning_projects',
+                'planning_projects.id =
+                    planning_assignments.id_planning_projects',
+                'inner'
+            )
+            ->join(
+                'planning_project_phases',
+                'planning_project_phases.id =
+                    planning_assignments.id_planning_project_phases',
+                'left'
+            );
+
+        if ($employee_ids !== null) {
+            if (!$employee_ids) {
+                return [];
+            }
+
+            $this->db->join(
+                'planning_assignment_employees',
+                'planning_assignment_employees.id_planning_assignments =
+                    planning_assignments.id',
+                'inner'
+            );
+
+            $this->db->where_in(
+                'planning_assignment_employees.id_users',
+                array_map('intval', $employee_ids)
+            );
+        }
+
+        $this->db
+            ->where(
+                'planning_assignments.start_datetime <',
+                $end_datetime
+            )
+            ->where(
+                'planning_assignments.end_datetime >',
+                $start_datetime
+            )
+            ->where(
+                'planning_assignments.status !=',
+                'cancelled'
+            )
+            ->order_by(
+                'planning_assignments.start_datetime',
+                'ASC'
+            );
+
+        $assignments = $this->db
+            ->get()
+            ->result_array();
+
+        foreach ($assignments as &$assignment) {
+            $assignment_id = (int) $assignment['id'];
+
+            $assignment['calendar_ids'] =
+                $this->get_planning_calendar_ids(
+                    'project_assignment',
+                    $assignment_id
+                );
+
+            $assignment['event_type'] =
+                'project_assignment';
+
+            $assignment['employee_ids'] =
+                $this->get_project_assignment_relation_ids(
+                    'planning_assignment_employees',
+                    'id_users',
+                    $assignment_id
+                );
+
+            $assignment['team_ids'] =
+                $this->get_project_assignment_relation_ids(
+                    'planning_assignment_teams',
+                    'id_employee_teams',
+                    $assignment_id
+                );
+
+            $assignment['resource_ids'] =
+                $this->get_project_assignment_relation_ids(
+                    'planning_assignment_resources',
+                    'id_planning_resources',
+                    $assignment_id
+                );
+        }
+
+        unset($assignment);
+
+        return $assignments;
+    }
+
+    private function get_project_assignment_relation_ids(
+        string $table,
+        string $column,
+        int $assignment_id
+    ): array {
+        $rows = $this->db
+            ->select($column)
+            ->where(
+                'id_planning_assignments',
+                $assignment_id
+            )
+            ->get($table)
+            ->result_array();
+
+        return array_map(
+            static fn(array $row): int =>
+                (int) $row[$column],
+            $rows
+        );
+    }
+
+    private function get_visible_project_assignment_employee_ids(): ?array
+    {
+        $role_slug = session('role_slug');
+        $user_id = (int) session('user_id');
+
+        if ($role_slug === DB_SLUG_PROVIDER) {
+            return [$user_id];
+        }
+
+        if ($role_slug === DB_SLUG_SECRETARY) {
+            return array_map(
+                'intval',
+                $this->secretaries_model
+                    ->find($user_id)['providers']
+            );
+        }
+
+        return null;
+    }
+
     public function get_calendar_appointments_for_table_view(): void
     {
         try {
@@ -785,7 +1222,20 @@ class Calendar extends EA_Controller
                     $this->providers_model->find($appointment['id_users_provider']),
                 );
                 $appointment['service'] = $this->services_model->find($appointment['id_services']);
-                $appointment['customer'] = $this->customers_model->find($appointment['id_users_customer']);
+                $appointment['customer'] = !empty($appointment['id_users_customer'])
+                    ? $this->customers_model->find((int) $appointment['id_users_customer'])
+                    : null;
+                $appointment['resources'] =
+                    $this->appointment_resources_model
+                        ->get_by_appointment(
+                            (int) $appointment['id']
+                        );
+
+                $appointment['calendar_ids'] =
+                    $this->get_planning_calendar_ids(
+                        'appointment',
+                        (int) $appointment['id']
+                    );
             }
 
             unset($appointment);
@@ -847,6 +1297,13 @@ class Calendar extends EA_Controller
             $end_date = request('end_date');
             $response['blocked_periods'] = $this->blocked_periods_model->get_for_period($start_date, $end_date);
 
+            $response['project_assignments'] =
+                $this->get_project_assignments_for_period(
+                    request('start_date') . ' 00:00:00',
+                    request('end_date') . ' 23:59:59',
+                    $this->get_visible_project_assignment_employee_ids()
+                );
+
             json_response($response);
         } catch (Throwable $e) {
             json_exception($e);
@@ -883,6 +1340,7 @@ class Calendar extends EA_Controller
                 json_response([
                     'appointments' => [],
                     'unavailabilities' => [],
+                    'project_assignments' => [],
                 ]);
 
                 return;
@@ -944,7 +1402,20 @@ class Calendar extends EA_Controller
                     $this->providers_model->find($appointment['id_users_provider']),
                 );
                 $appointment['service'] = $this->services_model->find($appointment['id_services']);
-                $appointment['customer'] = $this->customers_model->find($appointment['id_users_customer']);
+                $appointment['customer'] = !empty($appointment['id_users_customer'])
+                    ? $this->customers_model->find((int) $appointment['id_users_customer'])
+                    : null;
+                $appointment['resources'] =
+                    $this->appointment_resources_model
+                        ->get_by_appointment(
+                            (int) $appointment['id']
+                        );
+
+                $appointment['calendar_ids'] =
+                    $this->get_planning_calendar_ids(
+                        'appointment',
+                        (int) $appointment['id']
+                    );
             }
 
             unset($appointment);
@@ -1039,6 +1510,50 @@ class Calendar extends EA_Controller
             $start_date = request('start_date');
             $end_date = request('end_date');
             $response['blocked_periods'] = $this->blocked_periods_model->get_for_period($start_date, $end_date);
+
+            $assignment_employee_ids =
+                $this->get_visible_project_assignment_employee_ids();
+
+            if (
+                $filter_type === FILTER_TYPE_SERVICE &&
+                !$is_all
+            ) {
+                $response['project_assignments'] = [];
+            } else {
+                if (
+                    $filter_type === FILTER_TYPE_PROVIDER &&
+                    !$is_all
+                ) {
+                    $selected_employee_ids = [
+                        (int) $record_id,
+                    ];
+
+                    if ($assignment_employee_ids !== null) {
+                        $selected_employee_ids = array_values(
+                            array_intersect(
+                                $selected_employee_ids,
+                                $assignment_employee_ids
+                            )
+                        );
+                    }
+                } else {
+                    $selected_employee_ids =
+                        $assignment_employee_ids;
+                }
+
+                $response['project_assignments'] =
+                    $this->get_project_assignments_for_period(
+                        request('start_date') . ' 00:00:00',
+                        date(
+                            'Y-m-d 00:00:00',
+                            strtotime(
+                                request('end_date') .
+                                ' +1 day'
+                            )
+                        ),
+                        $selected_employee_ids
+                    );
+            }
 
             json_response($response);
         } catch (Throwable $e) {

@@ -94,6 +94,8 @@ class General_settings extends EA_Controller
         'default_timezone',
         'default_language',
         'theme',
+        'resource_icon_packs',
+        'enabled_modules',
         'date_format',
         'time_format',
         'first_weekday',

@@ -40,6 +40,7 @@ App.Components.AppointmentsModal = (function () {
     const $appointmentStatus = $('#appointment-status');
     const $appointmentColor = $('#appointment-color');
     const $appointmentNotes = $('#appointment-notes');
+    const $appointmentResources = $('#appointment-resources');
     const $reloadAppointments = $('#reload-appointments');
     const $selectFilterItem = $('#select-filter-item');
     const $selectService = $('#select-service');
@@ -54,6 +55,186 @@ App.Components.AppointmentsModal = (function () {
     const $customField5 = $('#custom-field-5');
 
     const moment = window.moment;
+
+    let planningResources = [];
+
+    const resourceTypeLabels = {
+        vehicle: 'Fahrzeug',
+        machine: 'Maschine',
+        equipment: 'Gerät',
+        room: 'Raum',
+        workplace: 'Arbeitsplatz',
+        other: 'Sonstiges',
+    };
+
+    function loadPlanningResources() {
+        return $.get(
+            App.Utils.Url.siteUrl('calendar/get_planning_resources')
+        )
+            .done((response) => {
+                planningResources = (response.resources || []).filter(
+                    (resource) => Number(resource.is_active) === 1
+                );
+
+                renderPlanningResources();
+            })
+            .fail(() => {
+                $appointmentResources
+                    .empty()
+                    .append(
+                        $('<div/>', {
+                            class: 'alert alert-danger mb-0',
+                            text: 'Ressourcen konnten nicht geladen werden.',
+                        })
+                    );
+            });
+    }
+
+    function renderPlanningResources(selected = []) {
+        $appointmentResources.empty();
+
+        if (!planningResources.length) {
+            $appointmentResources.append(
+                $('<span/>', {
+                    class: 'text-muted',
+                    text: 'Keine aktiven Ressourcen vorhanden.',
+                })
+            );
+
+            return;
+        }
+
+        planningResources.forEach((resource) => {
+            const existing = selected.find(
+                (item) =>
+                    Number(item.id_planning_resources) ===
+                    Number(resource.id)
+            );
+
+            const id = `appointment-resource-${resource.id}`;
+
+            const $enabled = $('<input/>', {
+                type: 'checkbox',
+                id,
+                class: 'form-check-input appointment-resource-enabled',
+                'data-resource-id': resource.id,
+                checked: Boolean(existing),
+            });
+
+            const details = [
+                resourceTypeLabels[resource.resource_type] ||
+                    resource.resource_type,
+                resource.inventory_number || null,
+                resource.location
+                    ? `Standard: ${resource.location}`
+                    : null,
+            ]
+                .filter(Boolean)
+                .join(' · ');
+
+            const behaviorLabels = {
+                stationary: resource.location
+                    ? `Fester Standort: ${resource.location}`
+                    : 'Fester Standort',
+                mobile: 'Mobil · folgt dem Termin-/Einsatzort',
+                carrier_bound: resource.carrier_name
+                    ? `Gebunden an: ${resource.carrier_name}`
+                    : 'An Trägerressource gebunden',
+                project_bound:
+                    'Projekt-/einsatzgebunden',
+            };
+
+            const $behavior = $('<div/>', {
+                class:
+                    'small text-muted ' +
+                    'appointment-resource-behavior',
+                text:
+                    behaviorLabels[resource.location_behavior] ||
+                    'Standort wird automatisch ermittelt',
+            });
+
+            const $row = $('<div/>', {
+                class:
+                    'appointment-resource-row border-bottom ' +
+                    'pb-3 mb-3',
+                'data-resource-id': resource.id,
+                html: [
+                    $('<div/>', {
+                        class: 'form-check mb-2',
+                        html: [
+                            $enabled,
+                            $('<label/>', {
+                                class: 'form-check-label fw-semibold',
+                                for: id,
+                                text: resource.name,
+                            }),
+                            $('<div/>', {
+                                class: 'small text-muted',
+                                text: details,
+                            }),
+                        ],
+                    }),
+                    $behavior,
+                ],
+            });
+
+            $appointmentResources.append($row);
+        });
+    }
+
+    function collectPlanningResources() {
+        return $appointmentResources
+            .find('.appointment-resource-row')
+            .map((_, row) => {
+                const $row = $(row);
+
+                if (
+                    !$row
+                        .find('.appointment-resource-enabled')
+                        .prop('checked')
+                ) {
+                    return null;
+                }
+
+                const resourceId = Number(
+                    $row.data('resource-id')
+                );
+
+                const resource = planningResources.find(
+                    (item) =>
+                        Number(item.id) === resourceId
+                );
+
+                const automaticModes = {
+                    stationary: 'default',
+                    mobile: 'appointment',
+                    carrier_bound: 'default',
+                    project_bound: 'project',
+                };
+
+                return {
+                    id_planning_resources: resourceId,
+                    location_mode:
+                        automaticModes[
+                            resource?.location_behavior
+                        ] || 'appointment',
+                    location_override: '',
+                };
+            })
+            .get()
+            .filter(Boolean);
+    }
+
+    function resetPlanningResources() {
+        renderPlanningResources([]);
+    }
+
+    $(document).on(
+        'appointment-resources:load',
+        (event, resources) => {
+            renderPlanningResources(resources || []);
+        }
+    );
 
     /**
      * Update the displayed timezone.
@@ -114,6 +295,7 @@ App.Components.AppointmentsModal = (function () {
                 status: $appointmentStatus.val(),
                 notes: $appointmentNotes.val(),
                 is_unavailability: Number(false),
+                resources: collectPlanningResources(),
             };
 
             if ($appointmentId.val() !== '') {
@@ -157,8 +339,12 @@ App.Components.AppointmentsModal = (function () {
             };
 
             // Define error callback.
-            const errorCallback = () => {
-                $appointmentsModal.find('.modal-message').text(lang('service_communication_error'));
+            const errorCallback = (xhr) => {
+                const message =
+                    xhr?.responseJSON?.message ||
+                    lang('service_communication_error');
+
+                $appointmentsModal.find('.modal-message').text(message);
                 $appointmentsModal.find('.modal-message').addClass('alert-danger').removeClass('d-none');
                 $appointmentsModal.find('.modal-body').scrollTop(0);
             };
@@ -258,6 +444,11 @@ App.Components.AppointmentsModal = (function () {
             $('.popover').remove();
 
             App.Components.AppointmentsModal.resetModal();
+
+            // Always refresh active planning resources when opening
+            // a new appointment. Resources may have changed since
+            // the calendar page itself was loaded.
+            loadPlanningResources();
 
             // Set the selected filter item and find the next appointment time as the default modal values.
             if ($selectFilterItem.find('option:selected').attr('type') === 'provider') {
@@ -603,6 +794,8 @@ App.Components.AppointmentsModal = (function () {
 
         App.Utils.UI.initializeDateTimePicker($endDatetime);
         App.Utils.UI.setDateTimePickerValue($endDatetime, endDatetime);
+        resetPlanningResources();
+
         $appointmentsModal.find('.modal-message').removeClass('alert-danger').text('').addClass('d-none');
     }
 
@@ -689,4 +882,6 @@ App.Components.AppointmentsModal = (function () {
         resetModal,
         validateAppointmentForm,
     };
+
+    loadPlanningResources();
 })();

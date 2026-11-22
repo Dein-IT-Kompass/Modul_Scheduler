@@ -86,6 +86,7 @@ $autoload['helper'] = [
     'string',
     'url',
     'validation',
+    'module',
 ];
 
 /*

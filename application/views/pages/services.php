@@ -47,6 +47,10 @@
                     <button id="cancel-service" class="btn btn-outline-secondary">
                         <?= lang('cancel') ?>
                     </button>
+                    <button id="duplicate-service" class="btn btn-outline-secondary ms-2">
+                        <i class="fas fa-copy me-2"></i>
+                        Duplizieren
+                    </button>
                     <button id="delete-service" class="btn btn-outline-danger ms-2">
                         <i class="fas fa-trash-alt me-2"></i>
                         <?= lang('delete') ?>
@@ -103,7 +107,7 @@
                 <select id="service-category-id" class="form-select" disabled></select>
             </div>
 
-            <div class="mb-3">
+            <div class="mb-3 d-none">
                 <label class="form-label" for="slot-interval">
                     <?= lang('slot_interval') ?>
                     <span class="text-danger" hidden>*</span>
@@ -111,7 +115,7 @@
                 <input id="slot-interval" class="form-control required" type="number" min="1" disabled>
             </div>
 
-            <div class="mb-3">
+            <div class="mb-3 d-none">
                 <label class="form-label" for="attendants-number" disabled>
                     <?= lang('attendants_number') ?>
                     <span class="text-danger" hidden>*</span>

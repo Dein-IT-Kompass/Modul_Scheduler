@@ -92,7 +92,9 @@ App.Pages.Services = (function () {
             $('#services-page').addClass('editing');
             $services.find('.add-edit-delete-group').hide();
             $services.find('.save-cancel-group').show();
-            $services.find('#delete-service').show(); // Show delete button when editing
+            $services
+                .find('#delete-service, #duplicate-service')
+                .show(); // Existing records can be deleted or duplicated
             $services.find('.record-details').find('input, select, textarea').prop('disabled', false);
             $services.find('.record-details .form-label span').prop('hidden', false);
             $filterServices.find('button').prop('disabled', true);
@@ -103,6 +105,58 @@ App.Pages.Services = (function () {
         });
 
         /**
+         * Prepare an existing service as a new copy.
+         *
+         * The existing form and save logic are reused. Removing the ID makes
+         * sure that saving creates a new service instead of updating the
+         * original record.
+         *
+         * @param {Number|String} serviceId
+         */
+        function duplicateService(serviceId) {
+            const service = filterResults.find(
+                (filterResult) => Number(filterResult.id) === Number(serviceId),
+            );
+
+            if (!service) {
+                return;
+            }
+
+            App.Pages.Services.display(service);
+
+            // An empty ID causes the existing save logic to create a new record.
+            $id.val('');
+            $name.val(`${service.name} – Kopie`);
+
+            $('#services-page').addClass('editing');
+            $services.find('.add-edit-delete-group').hide();
+            $services.find('.save-cancel-group').show();
+
+            // The copy is not persisted yet and therefore cannot be deleted
+            // or duplicated again until it has been saved.
+            $services.find('#delete-service, #duplicate-service').hide();
+
+            $services
+                .find('.record-details')
+                .find('input, select, textarea')
+                .prop('disabled', false);
+
+            $services
+                .find('.record-details .form-label span')
+                .prop('hidden', false);
+
+            $filterServices.find('button').prop('disabled', true);
+            $filterServices.find('.results').css('color', '#AAA');
+
+            App.Components.ColorSelection.enable($color);
+
+            $('#service-providers input:checkbox').prop('disabled', false);
+            $('#select-all-providers, #select-none-providers').prop('disabled', false);
+
+            $name.trigger('focus').select();
+        }
+
+        /**
          * Event: Add New Service Button "Click"
          */
         $services.on('click', '#add-service', () => {
@@ -110,7 +164,9 @@ App.Pages.Services = (function () {
             $('#services-page').addClass('editing');
             $services.find('.add-edit-delete-group').hide();
             $services.find('.save-cancel-group').show();
-            $services.find('#delete-service').hide(); // Hide delete button when adding
+            $services
+                .find('#delete-service, #duplicate-service')
+                .hide(); // New records cannot be deleted or duplicated yet
             $services.find('.record-details').find('input, select, textarea').prop('disabled', false);
             $services.find('.record-details .form-label span').prop('hidden', false);
             $filterServices.find('button').prop('disabled', true);
@@ -123,7 +179,7 @@ App.Pages.Services = (function () {
             $name.val('Service');
             $duration.val('30');
             $price.val('0');
-            $currency.val('');
+            $currency.val('EUR');
             $serviceCategoryId.val('');
             $slotInterval.val('15');
             $attendantsNumber.val('1');
@@ -158,7 +214,7 @@ App.Pages.Services = (function () {
                 location: $location.val(),
                 color: App.Components.ColorSelection.getColor($color),
                 slot_interval: $slotInterval.val(),
-                attendants_number: $attendantsNumber.val(),
+                attendants_number: $attendantsNumber.val() || '1',
                 is_private: Number($isPrivate.prop('checked')),
                 id_service_categories: $serviceCategoryId.val() || undefined,
             };
@@ -196,6 +252,35 @@ App.Pages.Services = (function () {
             App.Components.ColorSelection.enable($color);
             $('#service-providers input:checkbox').prop('disabled', false);
             $('#select-all-providers, #select-none-providers').prop('disabled', false);
+        });
+
+        /**
+         * Event: Duplicate Service From List Button "Click"
+         */
+        $services.on('click', '.duplicate-service-row', (event) => {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+
+            const serviceId = $(event.currentTarget).attr('data-id');
+
+            if (!serviceId) {
+                return;
+            }
+
+            duplicateService(serviceId);
+        });
+
+        /**
+         * Event: Duplicate Service Button "Click"
+         */
+        $services.on('click', '#duplicate-service', () => {
+            const serviceId = $id.val();
+
+            if (!serviceId) {
+                return;
+            }
+
+            duplicateService(serviceId);
         });
 
         /**
@@ -310,7 +395,7 @@ App.Pages.Services = (function () {
             }
 
             // Validate the attendants number.
-            if (Number($attendantsNumber.val()) < 1) {
+            if ($attendantsNumber.val() !== '' && Number($attendantsNumber.val()) < 1) {
                 $attendantsNumber.addClass('is-invalid');
                 throw new Error(lang('invalid_attendants_number'));
             }
@@ -462,12 +547,10 @@ App.Pages.Services = (function () {
      */
     function getFilterHtml(service) {
         const name = service.name;
-
         const info = service.duration + ' min - ' + service.price + ' ' + service.currency;
 
-        return $('<div/>', {
-            'class': 'service-row entry',
-            'data-id': service.id,
+        const $content = $('<div/>', {
+            'class': 'flex-grow-1',
             'html': [
                 $('<strong/>', {
                     'text': name,
@@ -477,7 +560,26 @@ App.Pages.Services = (function () {
                     'class': 'text-muted',
                     'text': info,
                 }),
-                $('<br/>'),
+            ],
+        });
+
+        const $duplicateButton = $('<button/>', {
+            'type': 'button',
+            'class': 'btn btn-sm btn-outline-secondary ms-2 duplicate-service-row',
+            'data-id': service.id,
+            'title': 'Duplizieren',
+            'aria-label': `${name} duplizieren`,
+            'html': $('<i/>', {
+                'class': 'fas fa-copy',
+            }),
+        });
+
+        return $('<div/>', {
+            'class': 'service-row entry d-flex align-items-center',
+            'data-id': service.id,
+            'html': [
+                $content,
+                $duplicateButton,
             ],
         });
     }

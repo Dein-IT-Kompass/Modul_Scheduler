@@ -141,6 +141,131 @@
 
                         <div class="row mb-5">
                             <div class="col-12">
+                                <h5 class="mb-3 fw-light">
+                                    Ressourcen &amp; Symbolpakete
+                                </h5>
+
+                                <p class="text-muted">
+                                    Aktivierte Pakete stehen in der
+                                    Ressourcenkategorie-Verwaltung zur Auswahl.
+                                    Alle Symbole werden lokal ausgeliefert.
+                                </p>
+
+                                <input type="hidden"
+                                       id="resource-icon-packs"
+                                       data-field="resource_icon_packs">
+
+                                <div class="form-check mb-3">
+                                    <input type="checkbox"
+                                           class="form-check-input resource-icon-pack-setting"
+                                           id="settings-icon-pack-core"
+                                           value="core"
+                                           checked
+                                           disabled>
+
+                                    <label class="form-check-label"
+                                           for="settings-icon-pack-core">
+                                        <strong>Grundausstattung</strong>
+                                    </label>
+                                </div>
+
+                                <div class="form-check mb-3">
+                                    <input type="checkbox"
+                                           class="form-check-input resource-icon-pack-setting"
+                                           id="settings-icon-pack-construction"
+                                           value="construction">
+
+                                    <label class="form-check-label"
+                                           for="settings-icon-pack-construction">
+                                        <strong>Bau, Handwerk und GaLaBau</strong>
+                                        <div class="text-muted small">
+                                            Bagger, Anhänger, Baumaschinen und LKW.
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <div class="form-check mb-3">
+                                    <input type="checkbox"
+                                           class="form-check-input resource-icon-pack-setting"
+                                           id="settings-icon-pack-cleaning"
+                                           value="cleaning">
+
+                                    <label class="form-check-label"
+                                           for="settings-icon-pack-cleaning">
+                                        <strong>Reinigung</strong>
+                                        <div class="text-muted small">
+                                            Sauger und Reinigungsmaschinen.
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <div class="form-check">
+                                    <input type="checkbox"
+                                           class="form-check-input resource-icon-pack-setting"
+                                           id="settings-icon-pack-physiotherapy"
+                                           value="physiotherapy">
+
+                                    <label class="form-check-label"
+                                           for="settings-icon-pack-physiotherapy">
+                                        <strong>
+                                            Physiotherapie und Gesundheit
+                                        </strong>
+                                        <div class="text-muted small">
+                                            Behandlungs-, Therapie- und Trainingsgeräte.
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <div class="form-check mt-3">
+                                    <input type="checkbox"
+                                           class="form-check-input resource-icon-pack-setting"
+                                           id="settings-icon-pack-dance"
+                                           value="dance">
+
+                                    <label class="form-check-label"
+                                           for="settings-icon-pack-dance">
+                                        <strong>Tanz &amp; Tanzschule</strong>
+
+                                        <div class="text-muted small">
+                                            Tanzarten, Einzel-/Paartraining,
+                                            Workshops und Tanzräume.
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-5">
+                            <div class="col-12">
+                                <h5 class="mb-3 fw-light">Installierte Module</h5>
+                                <input type="hidden" id="enabled-modules" data-field="enabled_modules">
+                                <div class="card mb-3">
+                                    <div class="card-body d-flex justify-content-between align-items-start gap-3">
+                                        <div>
+                                            <strong>MODUL Scheduler</strong>
+                                            <div class="text-muted small">Termin-, Kunden-, Personal- und Kalenderverwaltung.</div>
+                                        </div>
+                                        <span class="badge bg-success">Aktiv · Basismodul</span>
+                                    </div>
+                                </div>
+                                <div class="card">
+                                    <div class="card-body d-flex justify-content-between align-items-start gap-3">
+                                        <div>
+                                            <strong>MODUL ERP</strong>
+                                            <div class="text-muted small">Projekte, Einsätze, Ressourcen und Disposition. Beim Deaktivieren bleiben vorhandene Daten erhalten.</div>
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            <input type="checkbox" class="form-check-input module-setting"
+                                                   id="module-erp" value="erp">
+                                            <label class="form-check-label" for="module-erp">Aktiv</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-5">
+                            <div class="col-12">
                                 <h5 class="mb-3 fw-light"><?= lang('localization') ?></h5>
 
                                 <div class="mb-3">

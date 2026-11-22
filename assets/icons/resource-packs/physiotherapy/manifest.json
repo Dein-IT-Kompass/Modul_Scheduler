@@ -1,0 +1,19 @@
+{
+  "id": "physiotherapy",
+  "name": "Physiotherapie und Gesundheit",
+  "description": "Behandlung, Massage, Therapie, Diagnostik und Training.",
+  "required": false,
+  "icons": [
+    {"id": "treatment-table", "label": "Behandlungsliege", "source": "modul", "icon": "treatment-table"},
+    {"id": "massage-table", "label": "Massageliege", "source": "modul", "icon": "massage-table"},
+    {"id": "therapy-device", "label": "Therapiegerät", "source": "modul", "icon": "therapy-device"},
+    {"id": "electrotherapy", "label": "Elektrotherapie", "source": "modul", "icon": "electrotherapy"},
+    {"id": "ultrasound", "label": "Ultraschallgerät", "source": "modul", "icon": "ultrasound"},
+    {"id": "ergometer", "label": "Ergometer", "source": "modul", "icon": "ergometer"},
+    {"id": "treadmill", "label": "Laufband", "source": "modul", "icon": "treadmill"},
+    {"id": "strength-device", "label": "Kraftgerät", "source": "modul", "icon": "strength-device"},
+    {"id": "dumbbell", "label": "Krafttraining", "source": "fa", "icon": "fa-dumbbell"},
+    {"id": "bicycle", "label": "Fahrradtraining", "source": "fa", "icon": "fa-bicycle"},
+    {"id": "medical-room", "label": "Behandlungsraum", "source": "fa", "icon": "fa-procedures"}
+  ]
+}

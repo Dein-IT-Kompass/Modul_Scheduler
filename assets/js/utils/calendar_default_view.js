@@ -179,6 +179,10 @@ App.Utils.CalendarDefaultView = (function () {
 
         // Appointment fields
         $appointmentsModal.find('#appointment-location').val(appointment.location);
+        $(document).trigger(
+            'appointment-resources:load',
+            [appointment.resources || []],
+        );
         $appointmentsModal.find('#appointment-meeting-link').val(appointment.meeting_link);
         $appointmentsModal.find('#appointment-status').val(appointment.status);
         $appointmentsModal.find('#appointment-notes').val(appointment.notes);
@@ -416,7 +420,61 @@ App.Utils.CalendarDefaultView = (function () {
         let displayEdit;
         let displayDelete;
 
-        if ($target.hasClass('fc-blocked-period')) {
+        if ($target.hasClass('fc-project-assignment')) {
+            const assignment = info.event.extendedProps.data;
+
+            const period =
+                moment(assignment.start_datetime)
+                    .format('DD.MM.YYYY HH:mm') +
+                ' – ' +
+                moment(assignment.end_datetime)
+                    .format('DD.MM.YYYY HH:mm');
+
+            const projectUrl =
+                App.Utils.Url.siteUrl('planning_projects');
+
+            $html = $('<div/>', {
+                class: 'p-2',
+                html: [
+                    $('<div/>', {
+                        class: 'fw-semibold mb-1',
+                        text:
+                            assignment.project_name ||
+                            'Projekteinsatz',
+                    }),
+                    assignment.phase_name
+                        ? $('<div/>', {
+                            class: 'small text-muted mb-1',
+                            text:
+                                `Baustein: ${assignment.phase_name}`,
+                        })
+                        : null,
+                    $('<div/>', {
+                        class: 'small mb-1',
+                        text: period,
+                    }),
+                    assignment.location
+                        ? $('<div/>', {
+                            class: 'small mb-2',
+                            text:
+                                `Ort: ${assignment.location}`,
+                        })
+                        : null,
+                    $('<a/>', {
+                        class: 'btn btn-sm btn-outline-primary',
+                        href: projectUrl,
+                        text: 'Projekt öffnen',
+                    }),
+                    $('<button/>', {
+                        type: 'button',
+                        class:
+                            'btn btn-sm btn-outline-secondary ' +
+                            'close-popover ms-2',
+                        text: 'Schließen',
+                    }),
+                ].filter(Boolean),
+            });
+        } else if ($target.hasClass('fc-blocked-period')) {
             // Blocked periods are read-only, only show close button
             $html = App.Utils.CalendarEventPopover.buildBlockedPeriodPopover(info);
         } else if ($target.hasClass('fc-working-plan-exception')) {
@@ -461,6 +519,15 @@ App.Utils.CalendarDefaultView = (function () {
      * @param {Object} info - FullCalendar event info.
      */
     function onEventResize(info) {
+        if (
+            $(info.el).hasClass(
+                'fc-project-assignment'
+            )
+        ) {
+            info.revert();
+            return;
+        }
+
         if (!vars('privileges').appointments.edit) {
             info.revert();
             App.Layouts.Backend.displayNotification(lang('no_privileges_edit_appointments'));
@@ -557,6 +624,15 @@ App.Utils.CalendarDefaultView = (function () {
      * @param {Object} info - FullCalendar event info.
      */
     function onEventDrop(info) {
+        if (
+            $(info.el).hasClass(
+                'fc-project-assignment'
+            )
+        ) {
+            info.revert();
+            return;
+        }
+
         if (!vars('privileges').appointments.edit) {
             info.revert();
             App.Layouts.Backend.displayNotification(lang('no_privileges_edit_appointments'));
@@ -863,24 +939,80 @@ App.Utils.CalendarDefaultView = (function () {
     function refreshCalendarAppointments($calendar, recordId, filterType, startDate, endDate) {
         $('#loading').css('visibility', 'hidden');
 
+        const viewFilters =
+            App.Pages.Calendar.getCalendarViewFilters();
+
+        const hasSelection =
+            Object.values(viewFilters).some(
+                (values) => values.length > 0
+            );
+
+        // Always remove events from the previous calendar selection.
+        fullCalendar
+            .getEventSources()
+            .forEach((source) => source.remove());
+
+        // No selected calendar means an intentionally empty view.
+        if (!hasSelection) {
+            $('#loading').css('visibility', '');
+            return;
+        }
+
         const formattedStartDate = moment(startDate).format('YYYY-MM-DD');
         const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
         App.Http.Calendar.getCalendarAppointments(recordId, formattedStartDate, formattedEndDate, filterType)
             .done((response) => {
-                // Clear existing events
-                fullCalendar.getEventSources().forEach((source) => source.remove());
-
                 const events = [];
 
-                // Add appointments
-                events.push(...createAppointmentEvents(response.appointments));
+                const visibility =
+                    App.Pages.Calendar.getEventVisibility();
 
-                // Add unavailabilities
-                events.push(...createUnavailabilityEvents(response.unavailabilities));
+                const viewFilters =
+                    App.Pages.Calendar
+                        .getCalendarViewFilters();
 
-                // Add blocked periods
-                events.push(...createBlockedPeriodEvents(response.blocked_periods));
+                response.appointments =
+                    filterAppointmentsForCalendarView(
+                        response.appointments || [],
+                        viewFilters
+                    );
+
+                response.project_assignments =
+                    filterProjectAssignmentsForCalendarView(
+                        response.project_assignments || [],
+                        viewFilters
+                    );
+
+                if (visibility.appointments) {
+                    events.push(
+                        ...createAppointmentEvents(
+                            response.appointments || []
+                        )
+                    );
+                }
+
+                events.push(
+                    ...createProjectAssignmentEvents(
+                        response.project_assignments || []
+                    )
+                );
+
+                if (visibility.unavailabilities) {
+                    events.push(
+                        ...createUnavailabilityEvents(
+                            response.unavailabilities || []
+                        )
+                    );
+                }
+
+                if (visibility.blocked_periods) {
+                    events.push(
+                        ...createBlockedPeriodEvents(
+                            response.blocked_periods || []
+                        )
+                    );
+                }
 
                 // Add working plan events (only for day/week views)
                 if (fullCalendar.view.type !== 'dayGridMonth') {
@@ -892,6 +1024,52 @@ App.Utils.CalendarDefaultView = (function () {
             .always(() => {
                 $('#loading').css('visibility', '');
             });
+    }
+
+    function eventMatchesSelectedCalendars(
+        eventData,
+        filters
+    ) {
+        const selected =
+            (filters.calendar_ids || []).map(Number);
+
+        if (!selected.length) {
+            return false;
+        }
+
+        const eventCalendarIds =
+            (eventData.calendar_ids || []).map(Number);
+
+        return selected.some(
+            (calendarId) =>
+                eventCalendarIds.includes(calendarId)
+        );
+    }
+
+    function filterAppointmentsForCalendarView(
+        appointments,
+        filters
+    ) {
+        return (appointments || []).filter(
+            (appointment) =>
+                eventMatchesSelectedCalendars(
+                    appointment,
+                    filters
+                )
+        );
+    }
+
+    function filterProjectAssignmentsForCalendarView(
+        assignments,
+        filters
+    ) {
+        return (assignments || []).filter(
+            (assignment) =>
+                eventMatchesSelectedCalendars(
+                    assignment,
+                    filters
+                )
+        );
     }
 
     /**
@@ -919,9 +1097,101 @@ App.Utils.CalendarDefaultView = (function () {
                 start: moment(appointment.start_datetime).toDate(),
                 end: moment(appointment.end_datetime).toDate(),
                 allDay: false,
-                color: appointment.color,
+                color: getSelectedPlanningCalendarColor(
+                    appointment,
+                    'appointment'
+                ),
                 data: appointment,
                 display: 'block',
+            };
+        });
+    }
+
+    /**
+     * Create project assignment calendar events.
+     *
+     * @param {Array} assignments
+     * @returns {Array}
+     */
+    function getSelectedPlanningCalendarColor(eventData) {
+        const selectedIds =
+            App.Pages.Calendar
+                .getCalendarViewFilters()
+                .calendar_ids
+                .map(Number);
+
+        const eventCalendarIds =
+            (eventData.calendar_ids || [])
+                .map(Number);
+
+        const calendarId = selectedIds.find(
+            (selectedId) =>
+                eventCalendarIds.includes(selectedId)
+        );
+
+        if (!calendarId) {
+            return '#7cbae8';
+        }
+
+        const calendar =
+            (vars('planning_calendars') || [])
+                .find(
+                    (item) =>
+                        Number(item.id) ===
+                        Number(calendarId)
+                );
+
+        return calendar?.color || '#7cbae8';
+    }
+
+    function createProjectAssignmentEvents(assignments) {
+        return (assignments || []).map((assignment) => {
+            const selectedResources =
+                vars('calendar_resources')
+                    ?.filter((resource) =>
+                        (assignment.resource_ids || [])
+                            .map(Number)
+                            .includes(Number(resource.id))
+                    )
+                    .map((resource) => resource.name) || [];
+
+            const titleParts = [
+                assignment.project_name || null,
+                assignment.title || null,
+                selectedResources.length
+                    ? selectedResources.join(', ')
+                    : null,
+            ].filter(Boolean);
+
+            const title = titleParts.join(' · ');
+
+            return {
+                id: `project-assignment-${assignment.id}`,
+                title,
+                start: moment(
+                    assignment.start_datetime
+                ).toDate(),
+                end: moment(
+                    assignment.end_datetime
+                ).toDate(),
+                allDay: false,
+                backgroundColor:
+                    getSelectedPlanningCalendarColor(
+                        assignment,
+                        'project_assignment'
+                    ),
+                borderColor:
+                    getSelectedPlanningCalendarColor(
+                        assignment,
+                        'project_assignment'
+                    ),
+                textColor: '#ffffff',
+                editable: false,
+                durationEditable: false,
+                startEditable: false,
+                display: 'block',
+                className: 'fc-project-assignment',
+                data: assignment,
             };
         });
     }
