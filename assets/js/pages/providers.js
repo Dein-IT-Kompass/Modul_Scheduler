@@ -41,6 +41,306 @@ App.Pages.Providers = (function () {
     let filterLimit = 20;
     let workingPlanManager;
 
+    let deploymentCalendarHttpsUrl = '';
+
+    function resetDeploymentCalendar() {
+        deploymentCalendarHttpsUrl = '';
+
+        $('#deployment-calendar-empty')
+            .removeClass('d-none');
+
+        $('#deployment-calendar-active')
+            .addClass('d-none');
+
+        $('#deployment-calendar-secret')
+            .addClass('d-none');
+
+        $('#deployment-calendar-url').val('');
+
+        $('#deployment-calendar-webcal')
+            .attr('href', '#');
+
+        $('#create-deployment-calendar')
+            .prop('disabled', !$id.val());
+
+        $('#rotate-deployment-calendar')
+            .prop('disabled', true);
+
+        $('#disable-deployment-calendar')
+            .prop('disabled', true);
+
+        $('#deployment-calendar-message')
+            .addClass('d-none')
+            .text('');
+    }
+
+    function loadDeploymentCalendar() {
+        const employeeId = Number($id.val());
+
+        resetDeploymentCalendar();
+
+        if (!employeeId) {
+            return;
+        }
+
+        $('#create-deployment-calendar')
+            .prop('disabled', false);
+
+        $.get(
+            App.Utils.Url.siteUrl(
+                'planning_calendar_subscriptions/status'
+            ),
+            {
+                employee_id: employeeId,
+            }
+        )
+            .done((response) => {
+                const subscription =
+                    response.subscription;
+
+                if (
+                    subscription &&
+                    Number(subscription.is_active)
+                ) {
+                    $('#deployment-calendar-empty')
+                        .addClass('d-none');
+
+                    $('#deployment-calendar-active')
+                        .removeClass('d-none');
+
+                    $('#rotate-deployment-calendar')
+                        .prop('disabled', false);
+
+                    $('#disable-deployment-calendar')
+                        .prop('disabled', false);
+                }
+            })
+            .fail((xhr) => {
+                showDeploymentCalendarMessage(
+                    xhr.responseJSON?.message ||
+                    'Kalenderstatus konnte nicht geladen werden.',
+                    'danger'
+                );
+            });
+    }
+
+    function showDeploymentCalendarMessage(
+        message,
+        type = 'danger'
+    ) {
+        $('#deployment-calendar-message')
+            .removeClass(
+                'd-none alert-success alert-danger'
+            )
+            .addClass(`alert-${type}`)
+            .text(message);
+    }
+
+    function displayDeploymentCalendarSecret(
+        response
+    ) {
+        deploymentCalendarHttpsUrl =
+            response.https_url;
+
+        $('#deployment-calendar-empty')
+            .addClass('d-none');
+
+        $('#deployment-calendar-active')
+            .removeClass('d-none');
+
+        $('#deployment-calendar-secret')
+            .removeClass('d-none');
+
+        $('#deployment-calendar-token-hint')
+            .addClass('d-none');
+
+        $('#deployment-calendar-url')
+            .val(response.https_url);
+
+        $('#deployment-calendar-webcal')
+            .attr('href', response.webcal_url);
+
+        $('#rotate-deployment-calendar')
+            .prop('disabled', false);
+
+        $('#disable-deployment-calendar')
+            .prop('disabled', false);
+
+        const canvas = document.getElementById(
+            'deployment-calendar-qr'
+        );
+
+        if (window.QRCode && canvas) {
+            QRCode.toCanvas(
+                canvas,
+                response.webcal_url,
+                {
+                    width: 260,
+                    margin: 2,
+                    errorCorrectionLevel: 'M',
+                },
+                (error) => {
+                    if (error) {
+                        showDeploymentCalendarMessage(
+                            'QR-Code konnte nicht erzeugt werden.'
+                        );
+                    }
+                }
+            );
+        }
+
+        showDeploymentCalendarMessage(
+            'Kalenderzugang wurde erstellt. Der geheime Link wird nur jetzt vollständig angezeigt.',
+            'success'
+        );
+    }
+
+    function requestDeploymentCalendar(
+        endpoint
+    ) {
+        const employeeId = Number($id.val());
+
+        if (!employeeId) {
+            return;
+        }
+
+        $.post(
+            App.Utils.Url.siteUrl(endpoint),
+            {
+                csrf_token: vars('csrf_token'),
+                employee_id: employeeId,
+            }
+        )
+            .done(displayDeploymentCalendarSecret)
+            .fail((xhr) => {
+                showDeploymentCalendarMessage(
+                    xhr.responseJSON?.message ||
+                    'Kalenderzugang konnte nicht erstellt werden.'
+                );
+            });
+    }
+
+    /**
+     * Register deployment calendar actions.
+     */
+    function addDeploymentCalendarEventListeners() {
+        $providers.off(
+            '.deploymentCalendar'
+        );
+
+        $providers.on(
+            'click.deploymentCalendar',
+            '#create-deployment-calendar',
+            (event) => {
+                event.preventDefault();
+
+                requestDeploymentCalendar(
+                    'planning_calendar_subscriptions/create'
+                );
+            }
+        );
+
+        $providers.on(
+            'click.deploymentCalendar',
+            '#rotate-deployment-calendar',
+            (event) => {
+                event.preventDefault();
+
+                if (
+                    !window.confirm(
+                        'Der bisherige Kalenderlink wird sofort ungültig. Neuen Link erzeugen?'
+                    )
+                ) {
+                    return;
+                }
+
+                requestDeploymentCalendar(
+                    'planning_calendar_subscriptions/rotate'
+                );
+            }
+        );
+
+        $providers.on(
+            'click.deploymentCalendar',
+            '#disable-deployment-calendar',
+            (event) => {
+                event.preventDefault();
+
+                const employeeId =
+                    Number($id.val());
+
+                if (!employeeId) {
+                    return;
+                }
+
+                if (
+                    !window.confirm(
+                        'Kalenderzugang wirklich deaktivieren?'
+                    )
+                ) {
+                    return;
+                }
+
+                $.post(
+                    App.Utils.Url.siteUrl(
+                        'planning_calendar_subscriptions/disable'
+                    ),
+                    {
+                        csrf_token:
+                            vars('csrf_token'),
+
+                        employee_id:
+                            employeeId,
+                    }
+                )
+                    .done(() => {
+                        resetDeploymentCalendar();
+
+                        showDeploymentCalendarMessage(
+                            'Kalenderzugang wurde deaktiviert.',
+                            'success'
+                        );
+                    })
+                    .fail((xhr) => {
+                        showDeploymentCalendarMessage(
+                            xhr.responseJSON?.message ||
+                            'Kalenderzugang konnte nicht deaktiviert werden.'
+                        );
+                    });
+            }
+        );
+
+        $providers.on(
+            'click.deploymentCalendar',
+            '#copy-deployment-calendar',
+            async (event) => {
+                event.preventDefault();
+
+                if (!deploymentCalendarHttpsUrl) {
+                    return;
+                }
+
+                try {
+                    await navigator.clipboard.writeText(
+                        deploymentCalendarHttpsUrl
+                    );
+                } catch (error) {
+                    const $url =
+                        $('#deployment-calendar-url');
+
+                    $url.trigger('select');
+
+                    document.execCommand('copy');
+                }
+
+                App.Layouts.Backend
+                    .displayNotification(
+                        'ICS-Link wurde kopiert.'
+                    );
+            }
+        );
+    }
+
     /**
      * Add the page event listeners.
      */
@@ -75,6 +375,7 @@ App.Pages.Providers = (function () {
             const provider = filterResults.find((filterResult) => Number(filterResult.id) === Number(providerId));
 
             App.Pages.Providers.display(provider);
+            loadDeploymentCalendar();
             $filterProviders.find('.selected').removeClass('selected');
             $(event.currentTarget).addClass('selected');
             $('#edit-provider, #delete-provider').prop('disabled', false);
@@ -611,6 +912,7 @@ App.Pages.Providers = (function () {
         App.Pages.Providers.resetForm();
         App.Pages.Providers.filter('');
         App.Pages.Providers.addEventListeners();
+        addDeploymentCalendarEventListeners();
 
         vars('services').forEach((service) => {
             const checkboxId = `provider-service-${service.id}`;

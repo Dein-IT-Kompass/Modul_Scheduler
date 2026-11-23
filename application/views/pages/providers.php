@@ -66,6 +66,13 @@
                         <?= lang('working_plan') ?>
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link"
+                       href="#deployment-calendar"
+                       data-bs-toggle="tab">
+                        Einsatzkalender
+                    </a>
+                </li>
             </ul>
 
             <?php
@@ -285,6 +292,114 @@
                     </div>
                 </div>
 
+                <div class="tab-pane fade"
+                     id="deployment-calendar">
+
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <strong>
+                                Persönlicher Einsatzkalender
+                            </strong>
+                        </div>
+
+                        <div class="card-body">
+                            <div id="deployment-calendar-message"
+                                 class="alert d-none">
+                            </div>
+
+                            <div id="deployment-calendar-empty">
+                                <p class="text-muted">
+                                    Für diesen Mitarbeiter wurde noch kein
+                                    Kalenderzugang erstellt.
+                                </p>
+
+                                <button type="button"
+                                        id="create-deployment-calendar"
+                                        class="btn btn-primary"
+                                        disabled>
+                                    <i class="fas fa-qrcode me-2"></i>
+                                    Kalenderzugang erstellen
+                                </button>
+                            </div>
+
+                            <div id="deployment-calendar-active"
+                                 class="d-none">
+
+                                <div class="alert alert-success">
+                                    <strong>Status:</strong>
+                                    Kalenderzugang aktiv
+                                </div>
+
+                                <div id="deployment-calendar-secret"
+                                     class="d-none">
+
+                                    <div class="row g-4 align-items-center">
+                                        <div class="col-md-auto">
+                                            <canvas id="deployment-calendar-qr"
+                                                    width="260"
+                                                    height="260">
+                                            </canvas>
+                                        </div>
+
+                                        <div class="col">
+                                            <p>
+                                                QR-Code mit dem Smartphone
+                                                scannen und den persönlichen
+                                                Einsatzkalender abonnieren.
+                                            </p>
+
+                                            <a id="deployment-calendar-webcal"
+                                               class="btn btn-primary mb-2"
+                                               href="#">
+                                                <i class="fas fa-calendar-plus me-2"></i>
+                                                Auf diesem Gerät hinzufügen
+                                            </a>
+
+                                            <button type="button"
+                                                    id="copy-deployment-calendar"
+                                                    class="btn btn-outline-secondary mb-2">
+                                                <i class="fas fa-copy me-2"></i>
+                                                HTTPS-Link kopieren
+                                            </button>
+
+                                            <input type="text"
+                                                   id="deployment-calendar-url"
+                                                   class="form-control mt-2"
+                                                   readonly>
+                                        </div>
+                                    </div>
+
+                                    <hr>
+                                </div>
+
+                                <p id="deployment-calendar-token-hint"
+                                   class="text-muted">
+                                    Der bestehende geheime Link wird aus
+                                    Sicherheitsgründen nicht erneut angezeigt.
+                                    Bei Bedarf kann ein neuer QR-Code erzeugt
+                                    werden.
+                                </p>
+
+                                <button type="button"
+                                        id="rotate-deployment-calendar"
+                                        class="btn btn-outline-warning"
+                                        disabled>
+                                    <i class="fas fa-rotate me-2"></i>
+                                    Neuen QR-Code erzeugen
+                                </button>
+
+                                <button type="button"
+                                        id="disable-deployment-calendar"
+                                        class="btn btn-outline-danger ms-2"
+                                        disabled>
+                                    <i class="fas fa-ban me-2"></i>
+                                    Zugang deaktivieren
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="working-plan-view tab-pane fade clearfix" id="working-plan">
                     <h4 class="mb-3 fw-light">
                         <?= lang('working_plan') ?>
@@ -381,6 +496,7 @@
     </div>
 </div>
 
+<script src="<?= asset_url('assets/vendor/qrcode/qrcode.min.js') ?>"></script>
 <?php end_section('content'); ?>
 
 <?php section('scripts'); ?>

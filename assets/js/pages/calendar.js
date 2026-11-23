@@ -299,6 +299,64 @@ App.Pages.Calendar = (function () {
         applyEventVisibilityToControls();
         populateCalendarViewFilters();
 
+        // calendar-picker-keep-open
+        const $calendarPicker =
+            $('#calendar-view-config-button')
+                .closest('.dropdown');
+
+        const $calendarPickerMenu =
+            $calendarPicker.find('.dropdown-menu');
+
+        // Interaktionen innerhalb des Pickers dürfen das Dropdown
+        // nicht als normale Einzelauswahl schließen.
+        $calendarPickerMenu.on(
+            'click',
+            (event) => {
+                event.stopPropagation();
+            }
+        );
+
+        // Bootstrap kann das Dropdown trotz stopPropagation
+        // über seine eigene Auto-Close-Logik schließen.
+        // Solange der Fokus/Klick aus dem Picker selbst kommt,
+        // verhindern wir dieses Schließen explizit.
+        $calendarPicker.on(
+            'hide.bs.dropdown',
+            (event) => {
+                const clickEvent =
+                    event.clickEvent;
+
+                if (
+                    clickEvent &&
+                    $calendarPickerMenu[0]?.contains(
+                        clickEvent.target
+                    )
+                ) {
+                    event.preventDefault();
+                }
+            }
+        );
+
+
+        const calendarPickerButton =
+            document.getElementById(
+                'calendar-view-config-button'
+            );
+
+        if (
+            calendarPickerButton &&
+            window.bootstrap?.Dropdown
+        ) {
+            bootstrap.Dropdown.getOrCreateInstance(
+                calendarPickerButton,
+                {
+                    autoClose: 'outside',
+                }
+            );
+        }
+
+
+
         $calendarPage.on(
             'change',
             '.calendar-event-visibility',
@@ -308,7 +366,10 @@ App.Pages.Calendar = (function () {
         $calendarPage.on(
             'change',
             '.calendar-view-filter-option',
-            saveCalendarViewFilters
+            (event) => {
+                event.stopPropagation();
+                saveCalendarViewFilters();
+            }
         );
 
         $calendarPage.on(
@@ -386,7 +447,7 @@ App.Pages.Calendar = (function () {
 
         $calendarPage.on(
             'click',
-            '#calendar-view-config-button + .dropdown-menu',
+            '#calendar-filter .dropdown-menu',
             (event) => {
                 event.stopPropagation();
             }
