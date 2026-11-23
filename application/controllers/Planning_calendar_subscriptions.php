@@ -22,12 +22,29 @@ class Planning_calendar_subscriptions extends EA_Controller
 
             check('employee_id', 'numeric');
 
-            json_response(
+            $result =
                 $this->planning_calendar_subscriptions_model
                     ->status_for_employee(
                         (int) request('employee_id')
-                    )
-            );
+                    );
+
+            if (!empty($result['token'])) {
+                $urls = $this->append_urls([
+                    'token' => $result['token'],
+                    'calendar' =>
+                        $result['calendar'],
+                ]);
+
+                $result['https_url'] =
+                    $urls['https_url'];
+
+                $result['webcal_url'] =
+                    $urls['webcal_url'];
+            }
+
+            unset($result['token']);
+
+            json_response($result);
         } catch (Throwable $e) {
             json_exception($e);
         }

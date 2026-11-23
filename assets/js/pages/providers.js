@@ -28,6 +28,9 @@ App.Pages.Providers = (function () {
     const $zipCode = $('#zip-code');
     const $isPrivate = $('#is-private');
     const $notes = $('#notes');
+    const $employmentStart = $('#employment-start');
+    const $employmentEnd = $('#employment-end');
+    const $absenceApprovalMode = $('#absence-approval-mode');
     const $language = $('#language');
     const $timezone = $('#timezone');
     const $ldapDn = $('#ldap-dn');
@@ -40,6 +43,251 @@ App.Pages.Providers = (function () {
     let filterResults = {};
     let filterLimit = 20;
     let workingPlanManager;
+
+    let absenceApproverCandidates = [];
+
+    function showAbsenceApproverMessage(
+        message,
+        type = 'danger'
+    ) {
+        $('#absence-approvers-message')
+            .removeClass(
+                'd-none alert-success alert-danger alert-warning'
+            )
+            .addClass(`alert-${type}`)
+            .text(message);
+    }
+
+    function resetAbsenceApprovers() {
+        absenceApproverCandidates = [];
+
+        $('#absence-approvers-message')
+            .addClass('d-none')
+            .text('');
+
+        $('#save-absence-approvers')
+            .prop('disabled', true);
+
+        $('#absence-approvers-results').html(`
+            <tr>
+                <td colspan="4"
+                    class="text-muted text-center py-4">
+                    Mitarbeiter auswählen.
+                </td>
+            </tr>
+        `);
+    }
+
+    function roleLabel(roleSlug) {
+        const labels = {
+            admin: 'Administrator',
+            administrator: 'Administrator',
+            provider: 'Mitarbeiter',
+            secretary: 'Verwaltung / Assistenz',
+        };
+
+        return labels[roleSlug] || roleSlug || 'Benutzer';
+    }
+
+    function renderAbsenceApprovers(candidates, rules) {
+        const $results = $('#absence-approvers-results');
+        const rulesByApprover = {};
+
+        rules.forEach((rule) => {
+            rulesByApprover[
+                Number(rule.id_users_approver)
+            ] = rule;
+        });
+
+        $results.empty();
+
+        if (!candidates.length) {
+            $results.append(`
+                <tr>
+                    <td colspan="4"
+                        class="text-muted text-center py-4">
+                        Keine geeigneten Benutzer vorhanden.
+                    </td>
+                </tr>
+            `);
+
+            return;
+        }
+
+        candidates.forEach((candidate) => {
+            const candidateId = Number(candidate.id);
+            const rule = rulesByApprover[candidateId] || {};
+
+            const name = [
+                candidate.first_name,
+                candidate.last_name,
+            ]
+                .filter(Boolean)
+                .join(' ') || candidate.email;
+
+            const $approve = $('<input/>', {
+                type: 'checkbox',
+                class:
+                    'form-check-input absence-can-approve',
+            })
+                .attr('data-user-id', candidateId)
+                .prop(
+                    'checked',
+                    Number(rule.can_approve) === 1
+                );
+
+            const $createApproved = $('<input/>', {
+                type: 'checkbox',
+                class:
+                    'form-check-input ' +
+                    'absence-can-create-approved',
+            })
+                .attr('data-user-id', candidateId)
+                .prop(
+                    'checked',
+                    Number(
+                        rule.can_create_approved
+                    ) === 1
+                );
+
+            $('<tr/>')
+                .append(
+                    $('<td/>').append(
+                        $('<div/>', {
+                            class: 'fw-semibold',
+                            text: name,
+                        }),
+                        $('<div/>', {
+                            class: 'small text-muted',
+                            text: candidate.email || '',
+                        })
+                    ),
+                    $('<td/>').text(
+                        roleLabel(candidate.role_slug)
+                    ),
+                    $('<td/>', {
+                        class: 'text-center',
+                    }).append($approve),
+                    $('<td/>', {
+                        class: 'text-center',
+                    }).append($createApproved)
+                )
+                .appendTo($results);
+        });
+
+        $('#save-absence-approvers')
+            .prop('disabled', false);
+    }
+
+    function loadAbsenceApprovers() {
+        const providerId = Number($id.val());
+
+        resetAbsenceApprovers();
+
+        if (!providerId) {
+            return;
+        }
+
+        $.get(
+            App.Utils.Url.siteUrl(
+                'providers/absence_approval_rules'
+            ),
+            {
+                provider_id: providerId,
+            }
+        )
+            .done((response) => {
+                absenceApproverCandidates =
+                    response.candidates || [];
+
+                renderAbsenceApprovers(
+                    absenceApproverCandidates,
+                    response.rules || []
+                );
+            })
+            .fail((xhr) => {
+                showAbsenceApproverMessage(
+                    xhr.responseJSON?.message ||
+                    'Genehmiger konnten nicht geladen werden.'
+                );
+            });
+    }
+
+    function collectAbsenceApproverRules() {
+        const rules = [];
+
+        absenceApproverCandidates.forEach(
+            (candidate) => {
+                const userId = Number(candidate.id);
+
+                const canApprove = $(
+                    `.absence-can-approve` +
+                    `[data-user-id="${userId}"]`
+                ).prop('checked');
+
+                const canCreateApproved = $(
+                    `.absence-can-create-approved` +
+                    `[data-user-id="${userId}"]`
+                ).prop('checked');
+
+                if (
+                    !canApprove &&
+                    !canCreateApproved
+                ) {
+                    return;
+                }
+
+                rules.push({
+                    id_users_approver: userId,
+                    can_approve:
+                        canApprove ? 1 : 0,
+                    can_create_approved:
+                        canCreateApproved ? 1 : 0,
+                });
+            }
+        );
+
+        return rules;
+    }
+
+    function saveAbsenceApprovers() {
+        const providerId = Number($id.val());
+
+        if (!providerId) {
+            return;
+        }
+
+        $('#save-absence-approvers')
+            .prop('disabled', true);
+
+        $.post(
+            App.Utils.Url.siteUrl(
+                'providers/save_absence_approval_rules'
+            ),
+            {
+                csrf_token: vars('csrf_token'),
+                provider_id: providerId,
+                rules: collectAbsenceApproverRules(),
+            }
+        )
+            .done(() => {
+                showAbsenceApproverMessage(
+                    'Genehmiger wurden gespeichert.',
+                    'success'
+                );
+
+                loadAbsenceApprovers();
+            })
+            .fail((xhr) => {
+                showAbsenceApproverMessage(
+                    xhr.responseJSON?.message ||
+                    'Genehmiger konnten nicht gespeichert werden.'
+                );
+
+                $('#save-absence-approvers')
+                    .prop('disabled', false);
+            });
+    }
 
     let deploymentCalendarHttpsUrl = '';
 
@@ -113,6 +361,19 @@ App.Pages.Providers = (function () {
 
                     $('#disable-deployment-calendar')
                         .prop('disabled', false);
+
+                    if (
+                        response.https_url &&
+                        response.webcal_url
+                    ) {
+                        displayDeploymentCalendarSecret(
+                            response
+                        );
+
+                        $('#deployment-calendar-message')
+                            .addClass('d-none')
+                            .text('');
+                    }
                 }
             })
             .fail((xhr) => {
@@ -345,6 +606,15 @@ App.Pages.Providers = (function () {
      * Add the page event listeners.
      */
     function addEventListeners() {
+        $providers.on(
+            'click',
+            '#save-absence-approvers',
+            (event) => {
+                event.preventDefault();
+                saveAbsenceApprovers();
+            }
+        );
+
         /**
          * Event: Filter Providers Form "Submit"
          *
@@ -400,6 +670,39 @@ App.Pages.Providers = (function () {
             $('#providers input:checkbox').prop('disabled', false);
             workingPlanManager.timepickers(false);
         });
+
+        /**
+         * Return to the provider overview.
+         */
+        $providers.on(
+            'click',
+            '#back-to-providers',
+            (event) => {
+                event.preventDefault();
+
+                App.Pages.Providers.resetForm();
+
+                $('#providers-page')
+                    .removeClass('editing');
+
+                $filterProviders
+                    .find('button')
+                    .prop('disabled', false);
+
+                $filterProviders
+                    .find('.results')
+                    .css('color', '');
+
+                $('#provider-detail-breadcrumb')
+                    .text('');
+
+                $('.switch-view a[href="#details"]')
+                    .tab('show');
+
+                $('#filter-providers .key')
+                    .trigger('focus');
+            }
+        );
 
         /**
          * Event: Add New Provider Button "Click"
@@ -499,6 +802,13 @@ App.Pages.Providers = (function () {
                 zip_code: $zipCode.val(),
                 is_private: Number($isPrivate.prop('checked')),
                 notes: $notes.val(),
+                employment_start:
+                    $employmentStart.val() || null,
+                employment_end:
+                    $employmentEnd.val() || null,
+                absence_approval_mode:
+                    $absenceApprovalMode.val() ||
+                    'approval_required',
                 language: $language.val(),
                 timezone: $timezone.val(),
                 ldap_dn: $ldapDn.val(),
@@ -681,6 +991,9 @@ App.Pages.Providers = (function () {
      * Resets the provider tab form back to its initial state.
      */
     function resetForm() {
+        resetAbsenceApprovers();
+        $('#provider-detail-breadcrumb').text('');
+
         $filterProviders.find('.selected').removeClass('selected');
         $filterProviders.find('button').prop('disabled', false);
         $filterProviders.find('.results').css('color', '');
@@ -723,6 +1036,18 @@ App.Pages.Providers = (function () {
      */
     function display(provider) {
         $id.val(provider.id);
+        loadAbsenceApprovers();
+
+        $('#provider-detail-breadcrumb').text(
+            [
+                provider.first_name,
+                provider.last_name,
+            ]
+                .filter(Boolean)
+                .join(' ')
+        );
+
+
         $firstName.val(provider.first_name);
         $lastName.val(provider.last_name);
         $email.val(provider.email);
@@ -734,6 +1059,10 @@ App.Pages.Providers = (function () {
         $zipCode.val(provider.zip_code);
         $isPrivate.prop('checked', provider.is_private);
         $notes.val(provider.notes);
+        $absenceApprovalMode.val(
+            provider.absence_approval_mode ||
+            'approval_required'
+        );
         $language.val(provider.language);
         $timezone.val(provider.timezone);
         $ldapDn.val(provider.ldap_dn);

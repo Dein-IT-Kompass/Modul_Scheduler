@@ -33,6 +33,9 @@ class Providers extends EA_Controller
         'state',
         'zip_code',
         'notes',
+        'employment_start',
+        'employment_end',
+        'absence_approval_mode',
         'timezone',
         'language',
         'is_private',
@@ -44,6 +47,7 @@ class Providers extends EA_Controller
 
     public array $optional_provider_fields = [
         'services' => [],
+        'absence_approval_mode' => 'approval_required',
     ];
 
     public array $allowed_provider_setting_fields = [
@@ -279,6 +283,90 @@ class Providers extends EA_Controller
     }
 
     /**
+     * Return the selectable absence approvers and existing rules.
+     */
+    public function absence_approval_rules(): void
+    {
+        try {
+            method('get');
+
+            if (cannot('view', PRIV_USERS)) {
+                abort(403, 'Forbidden');
+            }
+
+            check('provider_id', 'numeric');
+
+            $providerId = (int) request('provider_id');
+
+            if ($providerId < 1) {
+                throw new InvalidArgumentException(
+                    'Ungültiger Mitarbeiter.'
+                );
+            }
+
+            $this->load->model(
+                'employee_absence_approvers_model'
+            );
+
+            json_response([
+                'success' => true,
+                'candidates' =>
+                    $this
+                        ->employee_absence_approvers_model
+                        ->get_candidates($providerId),
+                'rules' =>
+                    $this
+                        ->employee_absence_approvers_model
+                        ->get_rules($providerId),
+            ]);
+        } catch (Throwable $e) {
+            json_exception($e);
+        }
+    }
+
+    /**
+     * Save the individual absence approvers.
+     */
+    public function save_absence_approval_rules(): void
+    {
+        try {
+            method('post');
+
+            if (cannot('edit', PRIV_USERS)) {
+                abort(403, 'Forbidden');
+            }
+
+            check('provider_id', 'numeric');
+            check('rules', 'array');
+
+            $providerId = (int) request('provider_id');
+
+            if ($providerId < 1) {
+                throw new InvalidArgumentException(
+                    'Ungültiger Mitarbeiter.'
+                );
+            }
+
+            $this->load->model(
+                'employee_absence_approvers_model'
+            );
+
+            $this
+                ->employee_absence_approvers_model
+                ->save_rules(
+                    $providerId,
+                    request('rules', [])
+                );
+
+            json_response([
+                'success' => true,
+            ]);
+        } catch (Throwable $e) {
+            json_exception($e);
+        }
+    }
+
+    /**
      * Remove a provider.
      */
     public function destroy(): void
@@ -300,6 +388,32 @@ class Providers extends EA_Controller
             }
 
             $provider = $this->providers_model->find($provider_id);
+
+            $historical_assignments = $this->db
+                ->from('planning_assignment_employees')
+                ->join(
+                    'planning_assignments',
+                    'planning_assignments.id =
+                        planning_assignment_employees.id_planning_assignments',
+                    'inner'
+                )
+                ->where(
+                    'planning_assignment_employees.id_users',
+                    $provider_id
+                )
+                ->where(
+                    'planning_assignments.start_datetime <',
+                    date('Y-m-d H:i:s')
+                )
+                ->count_all_results();
+
+            if ($historical_assignments > 0) {
+                throw new RuntimeException(
+                    'Dieser Mitarbeiter besitzt historische Projekteinsätze '
+                    . 'und kann deshalb nicht gelöscht werden. '
+                    . 'Bitte ein Austrittsdatum hinterlegen.'
+                );
+            }
 
             $this->providers_model->delete($provider_id);
 

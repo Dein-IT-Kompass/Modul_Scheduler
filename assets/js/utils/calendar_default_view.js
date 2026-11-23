@@ -1079,32 +1079,104 @@ App.Utils.CalendarDefaultView = (function () {
      * @returns {Array} Calendar event objects.
      */
     function createAppointmentEvents(appointments) {
-        return appointments.map((appointment) => {
-            const customerName = [appointment.customer.first_name, appointment.customer.last_name]
-                .filter(Boolean)
-                .join(' ');
+        const selectedIds =
+            App.Pages.Calendar
+                .getCalendarViewFilters()
+                .calendar_ids
+                .map(Number);
 
-            const type =
-                getSelectedFilterType() !== FILTER_TYPE_SERVICE
-                    ? appointment.service.name
-                    : [appointment.provider.first_name, appointment.provider.last_name].filter(Boolean).join(' ');
+        const calendars =
+            vars('planning_calendars') || [];
 
-            const title = customerName ? customerName + ' - ' + type : appointment.service.name;
+        return (appointments || []).flatMap(
+            (appointment) => {
+                const appointmentCalendarIds =
+                    (appointment.calendar_ids || [])
+                        .map(Number);
 
-            return {
-                id: appointment.id,
-                title,
-                start: moment(appointment.start_datetime).toDate(),
-                end: moment(appointment.end_datetime).toDate(),
-                allDay: false,
-                color: getSelectedPlanningCalendarColor(
-                    appointment,
-                    'appointment'
-                ),
-                data: appointment,
-                display: 'block',
-            };
-        });
+                const matchingIds =
+                    selectedIds.filter(
+                        (calendarId) =>
+                            appointmentCalendarIds.includes(
+                                calendarId
+                            )
+                    );
+
+                const customerName = [
+                    appointment.customer?.first_name,
+                    appointment.customer?.last_name,
+                ]
+                    .filter(Boolean)
+                    .join(' ');
+
+                return matchingIds.map(
+                    (calendarId) => {
+                        const calendar =
+                            calendars.find(
+                                (item) =>
+                                    Number(item.id) ===
+                                    calendarId
+                            );
+
+                        const serviceName =
+                            appointment.service?.name ||
+                            'Termin';
+
+                        const title = [
+                            calendar?.name || null,
+                            customerName || null,
+                            serviceName,
+                        ]
+                            .filter(Boolean)
+                            .join(' · ');
+
+                        return {
+                            id:
+                                `appointment-` +
+                                `${appointment.id}-` +
+                                `calendar-${calendarId}`,
+
+                            groupId:
+                                `appointment-` +
+                                appointment.id,
+
+                            title,
+
+                            start: moment(
+                                appointment.start_datetime
+                            ).toDate(),
+
+                            end: moment(
+                                appointment.end_datetime
+                            ).toDate(),
+
+                            allDay: false,
+
+                            backgroundColor:
+                                calendar?.color ||
+                                appointment.color ||
+                                '#7cbae8',
+
+                            borderColor:
+                                calendar?.color ||
+                                appointment.color ||
+                                '#7cbae8',
+
+                            overlap: true,
+                            display: 'block',
+
+                            data: appointment,
+
+                            planningCalendarId:
+                                calendarId,
+
+                            planningCalendar:
+                                calendar || null,
+                        };
+                    }
+                );
+            }
+        );
     }
 
     /**
@@ -1145,55 +1217,115 @@ App.Utils.CalendarDefaultView = (function () {
     }
 
     function createProjectAssignmentEvents(assignments) {
-        return (assignments || []).map((assignment) => {
-            const selectedResources =
-                vars('calendar_resources')
-                    ?.filter((resource) =>
-                        (assignment.resource_ids || [])
-                            .map(Number)
-                            .includes(Number(resource.id))
-                    )
-                    .map((resource) => resource.name) || [];
+        const selectedIds =
+            App.Pages.Calendar
+                .getCalendarViewFilters()
+                .calendar_ids
+                .map(Number);
 
-            const titleParts = [
-                assignment.project_name || null,
-                assignment.title || null,
-                selectedResources.length
-                    ? selectedResources.join(', ')
-                    : null,
-            ].filter(Boolean);
+        const calendars =
+            vars('planning_calendars') || [];
 
-            const title = titleParts.join(' · ');
+        return (assignments || []).flatMap(
+            (assignment) => {
+                const assignmentCalendarIds =
+                    (assignment.calendar_ids || [])
+                        .map(Number);
 
-            return {
-                id: `project-assignment-${assignment.id}`,
-                title,
-                start: moment(
-                    assignment.start_datetime
-                ).toDate(),
-                end: moment(
-                    assignment.end_datetime
-                ).toDate(),
-                allDay: false,
-                backgroundColor:
-                    getSelectedPlanningCalendarColor(
-                        assignment,
-                        'project_assignment'
-                    ),
-                borderColor:
-                    getSelectedPlanningCalendarColor(
-                        assignment,
-                        'project_assignment'
-                    ),
-                textColor: '#ffffff',
-                editable: false,
-                durationEditable: false,
-                startEditable: false,
-                display: 'block',
-                className: 'fc-project-assignment',
-                data: assignment,
-            };
-        });
+                const matchingIds =
+                    selectedIds.filter(
+                        (calendarId) =>
+                            assignmentCalendarIds.includes(
+                                calendarId
+                            )
+                    );
+
+                return matchingIds.map(
+                    (calendarId) => {
+                        const calendar =
+                            calendars.find(
+                                (item) =>
+                                    Number(item.id) ===
+                                    calendarId
+                            );
+
+                        const calendarName =
+                            calendar?.name ||
+                            'Kalender';
+
+                        const color =
+                            calendar?.color ||
+                            '#7cbae8';
+
+                        const assignmentTitle =
+                            assignment.title ||
+                            'Projekteinsatz';
+
+                        const projectName =
+                            assignment.project_name ||
+                            '';
+
+                        const titleParts = [
+                            calendarName,
+                            projectName &&
+                            projectName !==
+                                calendarName
+                                ? projectName
+                                : null,
+                            assignmentTitle,
+                        ].filter(Boolean);
+
+                        return {
+                            id:
+                                `project-assignment-` +
+                                `${assignment.id}-` +
+                                `calendar-${calendarId}`,
+
+                            groupId:
+                                `project-assignment-` +
+                                assignment.id,
+
+                            title:
+                                titleParts.join(' · '),
+
+                            start: moment(
+                                assignment.start_datetime
+                            ).toDate(),
+
+                            end: moment(
+                                assignment.end_datetime
+                            ).toDate(),
+
+                            allDay: false,
+
+                            backgroundColor: color,
+                            borderColor: color,
+                            textColor: '#ffffff',
+
+                            editable: false,
+                            durationEditable: false,
+                            startEditable: false,
+
+                            overlap: true,
+                            display: 'block',
+
+                            classNames: [
+                                'fc-project-assignment',
+                                'fc-planning-calendar-event',
+                            ],
+
+                            data: assignment,
+
+                            planningCalendarId:
+                                calendarId,
+
+                            planningCalendar:
+                                calendar || null,
+                        };
+                    }
+                );
+            }
+        );
     }
 
     /**

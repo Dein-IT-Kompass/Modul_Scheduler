@@ -90,7 +90,7 @@ $(function () {
             });
 
             if (
-                vars('can_manage_absences') &&
+                Boolean(Number(record.can_decide)) &&
                 record.status === 'requested'
             ) {
                 $('<button/>', {

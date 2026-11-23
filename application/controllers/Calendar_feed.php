@@ -48,42 +48,176 @@ class Calendar_feed extends EA_Controller
         ];
 
         foreach ($events as $event) {
-            $resources = array_column(
-                $event['resources'] ?? [],
-                'name'
-            );
+            $resources = $event['resources'] ?? [];
 
             $teams = array_column(
                 $event['teams'] ?? [],
                 'name'
             );
 
-            $description = [
-                'Projekt: ' .
-                    ($event['project_name'] ?? ''),
-                'Einsatz: ' .
-                    ($event['title'] ?? ''),
-            ];
+            $description = [];
+
+            $description[] = 'EINSATZ';
+            $description[] =
+                $event['title'] ?? '';
+
+            $description[] = '';
+            $description[] = 'PROJEKT';
+            $description[] =
+                $event['project_name'] ?? '';
 
             if (!empty($event['phase_name'])) {
+                $description[] = '';
+                $description[] = 'PROJEKTBAUSTEIN';
                 $description[] =
-                    'Baustein: ' . $event['phase_name'];
+                    $event['phase_name'];
             }
 
-            if ($resources) {
-                $description[] =
-                    'Ressourcen: ' .
-                    implode(', ', $resources);
+            $customerName = trim(
+                (string) (
+                    ($event['customer_first_name'] ?? '') .
+                    ' ' .
+                    ($event['customer_last_name'] ?? '')
+                )
+            );
+
+            $customerPhone = trim(
+                (string) (
+                    $event['customer_mobile_number'] ??
+                    $event['customer_phone_number'] ??
+                    ''
+                )
+            );
+
+            $customerAddressParts = array_filter(
+                [
+                    trim(
+                        (string) (
+                            $event['customer_address'] ?? ''
+                        )
+                    ),
+                    trim(
+                        (string) (
+                            ($event['customer_zip_code'] ?? '') .
+                            ' ' .
+                            ($event['customer_city'] ?? '')
+                        )
+                    ),
+                ],
+                static fn(string $value): bool =>
+                    $value !== ''
+            );
+
+            $customerAddress = implode(
+                ', ',
+                $customerAddressParts
+            );
+
+            if (
+                $customerName !== '' ||
+                $customerPhone !== '' ||
+                $customerAddress !== ''
+            ) {
+                $description[] = '';
+                $description[] = 'KUNDE';
+
+                if ($customerName !== '') {
+                    $description[] = $customerName;
+                }
+
+                if ($customerAddress !== '') {
+                    $description[] =
+                        'Adresse: ' . $customerAddress;
+                }
+
+                if ($customerPhone !== '') {
+                    $description[] =
+                        'Telefon: ' . $customerPhone;
+                }
+            }
+
+            $location = trim(
+                (string) ($event['location'] ?? '')
+            );
+
+            if ($location === '') {
+                $location = $customerAddress;
+            }
+
+            if ($location !== '') {
+                $description[] = '';
+                $description[] = 'EINSATZORT';
+                $description[] = $location;
             }
 
             if ($teams) {
-                $description[] =
-                    'Teams: ' . implode(', ', $teams);
+                $description[] = '';
+                $description[] = 'TEAM';
+
+                foreach ($teams as $team) {
+                    $description[] = '• ' . $team;
+                }
             }
 
-            if (!empty($event['notes'])) {
-                $description[] =
-                    'Hinweis: ' . $event['notes'];
+            if ($resources) {
+                $groupedResources = [];
+
+                foreach ($resources as $resource) {
+                    $resourceName = trim(
+                        (string) (
+                            $resource['name'] ?? ''
+                        )
+                    );
+
+                    if ($resourceName === '') {
+                        continue;
+                    }
+
+                    $category = trim(
+                        (string) (
+                            $resource['category_name'] ?? ''
+                        )
+                    );
+
+                    if ($category === '') {
+                        $category = 'Weitere Ressourcen';
+                    }
+
+                    $groupedResources[$category][] =
+                        $resourceName;
+                }
+
+                if ($groupedResources) {
+                    $description[] = '';
+                    $description[] =
+                        'ZUGETEILTE RESSOURCEN';
+
+                    foreach (
+                        $groupedResources as
+                        $category => $items
+                    ) {
+                        $description[] = '';
+                        $description[] =
+                            $category . ':';
+
+                        foreach (
+                            array_unique($items) as $item
+                        ) {
+                            $description[] =
+                                '• ' . $item;
+                        }
+                    }
+                }
+            }
+
+            $notes = trim(
+                (string) ($event['notes'] ?? '')
+            );
+
+            if ($notes !== '') {
+                $description[] = '';
+                $description[] = 'HINWEISE';
+                $description[] = $notes;
             }
 
             $updated =
@@ -126,9 +260,7 @@ class Calendar_feed extends EA_Controller
                         )
                     ),
                 'LOCATION:' .
-                    $this->escape(
-                        $event['location'] ?? ''
-                    ),
+                    $this->escape($location),
                 'DESCRIPTION:' .
                     $this->escape(
                         implode("\n", $description)

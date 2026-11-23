@@ -16,12 +16,24 @@ class Planning_projects_model extends EA_Model
             ->select(
                 'planning_projects.*,
                  lead.first_name AS lead_first_name,
-                 lead.last_name AS lead_last_name'
+                 lead.last_name AS lead_last_name,
+                 customer.first_name AS customer_first_name,
+                 customer.last_name AS customer_last_name,
+                 customer.phone_number AS customer_phone_number,
+                 customer.mobile_number AS customer_mobile_number,
+                 customer.address AS customer_address,
+                 customer.zip_code AS customer_zip_code,
+                 customer.city AS customer_city'
             )
             ->from('planning_projects')
             ->join(
                 'users AS lead',
                 'lead.id = planning_projects.id_users_project_lead',
+                'left'
+            )
+            ->join(
+                'users AS customer',
+                'customer.id = planning_projects.id_users_customer',
                 'left'
             )
             ->order_by('planning_projects.start_date', 'DESC')
@@ -46,12 +58,24 @@ class Planning_projects_model extends EA_Model
             ->select(
                 'planning_projects.*,
                  lead.first_name AS lead_first_name,
-                 lead.last_name AS lead_last_name'
+                 lead.last_name AS lead_last_name,
+                 customer.first_name AS customer_first_name,
+                 customer.last_name AS customer_last_name,
+                 customer.phone_number AS customer_phone_number,
+                 customer.mobile_number AS customer_mobile_number,
+                 customer.address AS customer_address,
+                 customer.zip_code AS customer_zip_code,
+                 customer.city AS customer_city'
             )
             ->from('planning_projects')
             ->join(
                 'users AS lead',
                 'lead.id = planning_projects.id_users_project_lead',
+                'left'
+            )
+            ->join(
+                'users AS customer',
+                'customer.id = planning_projects.id_users_customer',
                 'left'
             )
             ->where('planning_projects.id', $project_id)
@@ -79,6 +103,10 @@ class Planning_projects_model extends EA_Model
         $now = date('Y-m-d H:i:s');
 
         $record = [
+            'id_users_customer' =>
+                !empty($project['id_users_customer'])
+                    ? (int) $project['id_users_customer']
+                    : null,
             'name' => trim((string) $project['name']),
             'description' => trim(
                 (string) ($project['description'] ?? '')
@@ -217,6 +245,31 @@ class Planning_projects_model extends EA_Model
             );
         }
 
+        $customer_id = !empty(
+            $project['id_users_customer']
+        )
+            ? (int) $project['id_users_customer']
+            : null;
+
+        if ($customer_id) {
+            $customerExists = $this->db
+                ->from('users')
+                ->join(
+                    'roles',
+                    'roles.id = users.id_roles',
+                    'inner'
+                )
+                ->where('users.id', $customer_id)
+                ->where('roles.slug', 'customer')
+                ->count_all_results() > 0;
+
+            if (!$customerExists) {
+                throw new InvalidArgumentException(
+                    'Der ausgewählte Kunde ist ungültig.'
+                );
+            }
+        }
+
         $status = $project['status'] ?? 'planned';
 
         if (!in_array($status, self::ALLOWED_STATUSES, true)) {
@@ -347,6 +400,110 @@ class Planning_projects_model extends EA_Model
 
         $project['resource_count'] = count(
             $project['resources'] ?? []
+        );
+
+        $impact = $this->db
+            ->select(
+                "COUNT(pai.id) AS impact_count,
+                 MAX(
+                     CASE
+                         WHEN pai.severity = 'critical'
+                             THEN 3
+                         WHEN pai.severity = 'warning'
+                             THEN 2
+                         ELSE 1
+                     END
+                 ) AS severity_rank",
+                false
+            )
+            ->from(
+                'planning_assignment_impacts AS pai'
+            )
+            ->join(
+                'planning_assignments AS pa',
+                'pa.id = pai.id_planning_assignments',
+                'inner'
+            )
+            ->where(
+                'pa.id_planning_projects',
+                $project_id
+            )
+            ->where_in(
+                'pai.status',
+                ['open', 'acknowledged']
+            )
+            ->get()
+            ->row_array();
+
+        $project['impact_count'] =
+            (int) ($impact['impact_count'] ?? 0);
+
+        $project['impact_severity'] =
+            match (
+                (int) ($impact['severity_rank'] ?? 0)
+            ) {
+                3 => 'critical',
+                2 => 'warning',
+                1 => 'notice',
+                default => null,
+            };
+
+        $project['impacts'] = $this->db
+            ->select(
+                'pai.id AS impact_id,
+                 pai.impact_type,
+                 pai.source_type,
+                 pai.severity,
+                 pai.status AS impact_status,
+                 pai.message,
+                 pa.title AS assignment_title'
+            )
+            ->from(
+                'planning_assignment_impacts AS pai'
+            )
+            ->join(
+                'planning_assignments AS pa',
+                'pa.id = pai.id_planning_assignments',
+                'inner'
+            )
+            ->where(
+                'pa.id_planning_projects',
+                $project_id
+            )
+            ->where_in(
+                'pai.status',
+                ['open', 'acknowledged']
+            )
+            ->order_by(
+                "CASE
+                    WHEN pai.severity = 'critical'
+                        THEN 1
+                    WHEN pai.severity = 'warning'
+                        THEN 2
+                    ELSE 3
+                 END",
+                '',
+                false
+            )
+            ->get()
+            ->result_array();
+
+        $project['impact_open_count'] = count(
+            array_filter(
+                $project['impacts'],
+                static fn(array $impact): bool =>
+                    ($impact['impact_status'] ?? '') ===
+                    'open'
+            )
+        );
+
+        $project['impact_acknowledged_count'] = count(
+            array_filter(
+                $project['impacts'],
+                static fn(array $impact): bool =>
+                    ($impact['impact_status'] ?? '') ===
+                    'acknowledged'
+            )
         );
     }
 }

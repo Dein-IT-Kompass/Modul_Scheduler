@@ -11,7 +11,7 @@
                 <div>
                     <h3 class="mb-1">Projekte / Einsätze</h3>
                     <p class="text-muted mb-0">
-                        Projektstammdaten und Planungspools.
+                        Projektstammdaten und Einsatzplanung.
                     </p>
                 </div>
 
@@ -86,15 +86,6 @@
 
                         <li class="nav-item">
                             <button type="button"
-                                    class="nav-link"
-                                    data-bs-toggle="tab"
-                                    data-bs-target="#project-pools-tab">
-                                Planungspools
-                            </button>
-                        </li>
-
-                        <li class="nav-item">
-                            <button type="button"
                                     id="planning-project-timeline-tab-button"
                                     class="nav-link"
                                     data-bs-toggle="tab"
@@ -129,7 +120,7 @@
                                     <input id="planning-project-name"
                                            class="form-control"
                                            maxlength="256"
-                                           placeholder="z. B. GolfResort Außenanlage">
+                                           placeholder="Projekttitel eingeben">
                                 </div>
 
                                 <div class="col-md-4">
@@ -149,14 +140,119 @@
                                 </div>
 
                                 <div class="col-md-6">
+                                    <label for="planning-project-customer"
+                                           class="form-label">
+                                        Kunde
+                                        <span class="text-danger">*</span>
+                                    </label>
+
+                                    <select id="planning-project-customer"
+                                            class="form-select">
+                                        <option value="">
+                                            Kunde auswählen
+                                        </option>
+
+                                        <?php foreach (vars('customers') as $customer): ?>
+                                            <?php
+                                            $customerName = trim(
+                                                ($customer['first_name'] ?? '')
+                                                . ' '
+                                                . ($customer['last_name'] ?? '')
+                                            );
+
+                                            $customerAddress = trim(
+                                                implode(
+                                                    ', ',
+                                                    array_filter([
+                                                        trim(
+                                                            (string) (
+                                                                $customer['address'] ?? ''
+                                                            )
+                                                        ),
+                                                        trim(
+                                                            (string) (
+                                                                ($customer['zip_code'] ?? '')
+                                                                . ' '
+                                                                . ($customer['city'] ?? '')
+                                                            )
+                                                        ),
+                                                    ])
+                                                )
+                                            );
+
+                                            $customerPhone =
+                                                $customer['mobile_number']
+                                                ?? $customer['phone_number']
+                                                ?? '';
+                                            ?>
+
+                                            <option
+                                                value="<?= (int) $customer['id'] ?>"
+                                                data-address="<?= htmlspecialchars(
+                                                    $customerAddress,
+                                                    ENT_QUOTES,
+                                                    'UTF-8'
+                                                ) ?>"
+                                                data-phone="<?= htmlspecialchars(
+                                                    (string) $customerPhone,
+                                                    ENT_QUOTES,
+                                                    'UTF-8'
+                                                ) ?>">
+                                                <?= htmlspecialchars(
+                                                    $customerName ?: $customer['email'],
+                                                    ENT_QUOTES,
+                                                    'UTF-8'
+                                                ) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">
+                                        Kundenadresse
+                                    </label>
+
+                                    <div id="planning-project-customer-address"
+                                         class="form-control bg-light text-muted"
+                                         style="min-height: 38px;">
+                                        Noch kein Kunde ausgewählt.
+                                    </div>
+
+                                    <div id="planning-project-customer-phone"
+                                         class="form-text">
+                                    </div>
+                                </div>
+
+                                <div class="col-12">
+                                    <div class="form-check">
+                                        <input type="checkbox"
+                                               class="form-check-input"
+                                               id="planning-project-custom-location">
+
+                                        <label class="form-check-label"
+                                               for="planning-project-custom-location">
+                                            Abweichende Baustellenadresse
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 d-none"
+                                     id="planning-project-location-wrapper">
                                     <label for="planning-project-location"
                                            class="form-label">
-                                        Projektstandort
+                                        Baustellenadresse
                                     </label>
 
                                     <input id="planning-project-location"
                                            class="form-control"
-                                           maxlength="256">
+                                           maxlength="512"
+                                           placeholder="Straße, Hausnummer, PLZ Ort">
+
+                                    <div class="form-text">
+                                        Leer lassen, wenn die Kundenadresse
+                                        als Einsatzort verwendet werden soll.
+                                    </div>
                                 </div>
 
                                 <div class="col-md-6">
@@ -183,29 +279,44 @@
                                     </select>
                                 </div>
 
-                                <div class="col-md-4">
-                                    <label for="planning-project-start-date"
-                                           class="form-label">
-                                        Beginn
-                                    </label>
+                                <div class="col-12">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label for="planning-project-start-date"
+                                                   class="form-label">
+                                                Planungsstart
+                                            </label>
 
-                                    <input id="planning-project-start-date"
-                                           type="date"
-                                           class="form-control">
+                                            <input id="planning-project-start-date"
+                                                   type="text"
+                                                   class="form-control"
+                                                   inputmode="numeric"
+                                                   placeholder="TT.MM.JJJJ"
+                                                   autocomplete="off">
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label for="planning-project-end-date"
+                                                   class="form-label">
+                                                Voraussichtliches Projektenddatum
+                                            </label>
+
+                                            <input id="planning-project-end-date"
+                                                   type="text"
+                                                   class="form-control"
+                                                   inputmode="numeric"
+                                                   placeholder="optional"
+                                                   autocomplete="off">
+
+                                            <div class="form-text">
+                                                Optional. Kann sich durch den
+                                                Projektverlauf noch ändern.
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <div class="col-md-4">
-                                    <label for="planning-project-end-date"
-                                           class="form-label">
-                                        Ende
-                                    </label>
-
-                                    <input id="planning-project-end-date"
-                                           type="date"
-                                           class="form-control">
-                                </div>
-
-                                <div class="col-md-4">
+                                <div class="col-12">
                                     <label for="planning-project-color"
                                            class="form-label">
                                         Projektfarbe
@@ -230,101 +341,7 @@
                             </div>
                         </div>
 
-                        <div id="project-pools-tab"
-                             class="tab-pane fade">
-
-                            <div class="row g-4">
-                                <div class="col-md-6">
-                                    <h5 class="fw-light">Teams</h5>
-
-                                    <div class="border rounded p-3 planning-project-checklist">
-                                        <?php foreach (vars('teams') as $team): ?>
-                                            <div class="form-check mb-2">
-                                                <input type="checkbox"
-                                                       class="form-check-input project-team"
-                                                       id="project-team-<?= e($team['id']) ?>"
-                                                       value="<?= e($team['id']) ?>">
-
-                                                <label class="form-check-label"
-                                                       for="project-team-<?= e($team['id']) ?>">
-                                                    <?= e($team['name']) ?>
-                                                </label>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-6">
-                                    <h5 class="fw-light">Mitarbeiterpool</h5>
-
-                                    <div class="border rounded p-3 planning-project-checklist">
-                                        <?php foreach (vars('employees') as $employee): ?>
-                                            <div class="form-check mb-2">
-                                                <input type="checkbox"
-                                                       class="form-check-input project-employee"
-                                                       id="project-employee-<?= e($employee['id']) ?>"
-                                                       value="<?= e($employee['id']) ?>">
-
-                                                <label class="form-check-label"
-                                                       for="project-employee-<?= e($employee['id']) ?>">
-                                                    <?= e(trim(
-                                                        ($employee['first_name'] ?? '') .
-                                                        ' ' .
-                                                        ($employee['last_name'] ?? '')
-                                                    )) ?>
-                                                </label>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-6">
-                                    <h5 class="fw-light">Ressourcenpool</h5>
-
-                                    <div class="border rounded p-3 planning-project-checklist">
-                                        <?php foreach (vars('resources') as $resource): ?>
-                                            <div class="form-check mb-2">
-                                                <input type="checkbox"
-                                                       class="form-check-input project-resource"
-                                                       id="project-resource-<?= e($resource['id']) ?>"
-                                                       value="<?= e($resource['id']) ?>">
-
-                                                <label class="form-check-label"
-                                                       for="project-resource-<?= e($resource['id']) ?>">
-                                                    <?= e($resource['name']) ?>
-
-                                                    <?php if (!empty($resource['category_name'])): ?>
-                                                        <small class="text-muted">
-                                                            · <?= e($resource['category_name']) ?>
-                                                        </small>
-                                                    <?php endif; ?>
-                                                </label>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-6">
-                                    <h5 class="fw-light">Leistungspool</h5>
-
-                                    <div class="border rounded p-3 planning-project-checklist">
-                                        <?php foreach (vars('services') as $service): ?>
-                                            <div class="form-check mb-2">
-                                                <input type="checkbox"
-                                                       class="form-check-input project-service"
-                                                       id="project-service-<?= e($service['id']) ?>"
-                                                       value="<?= e($service['id']) ?>">
-
-                                                <label class="form-check-label"
-                                                       for="project-service-<?= e($service['id']) ?>">
-                                                    <?= e($service['name']) ?>
-                                                </label>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        
 
                         <div id="project-timeline-tab"
                              class="tab-pane fade">

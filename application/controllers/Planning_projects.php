@@ -11,6 +11,7 @@ class Planning_projects extends EA_Controller
         $this->load->model('planning_projects_model');
         $this->load->model('planning_project_phases_model');
         $this->load->model('planning_assignments_model');
+        $this->load->model('planning_impacts_model');
         $this->load->model('providers_model');
         $this->load->model('services_model');
 
@@ -35,6 +36,30 @@ class Planning_projects extends EA_Controller
         $employees = filter_sensitive_users_data(
             $this->providers_model->get()
         );
+
+        $customers = $this->db
+            ->select(
+                'users.id,
+                 users.first_name,
+                 users.last_name,
+                 users.email,
+                 users.phone_number,
+                 users.mobile_number,
+                 users.address,
+                 users.zip_code,
+                 users.city'
+            )
+            ->from('users')
+            ->join(
+                'roles',
+                'roles.id = users.id_roles',
+                'inner'
+            )
+            ->where('roles.slug', 'customer')
+            ->order_by('users.last_name', 'ASC')
+            ->order_by('users.first_name', 'ASC')
+            ->get()
+            ->result_array();
 
         $teams = $this->db
             ->where('is_active', 1)
@@ -71,6 +96,7 @@ class Planning_projects extends EA_Controller
             'user_display_name' =>
                 $this->accounts->get_user_display_name($user_id),
             'employees' => $employees,
+            'customers' => $customers,
             'teams' => $teams,
             'resources' => $resources,
             'services' => $services,
@@ -144,6 +170,9 @@ class Planning_projects extends EA_Controller
                     'Projekt nicht gefunden.'
                 );
             }
+
+            $this->planning_impacts_model
+                ->rebuild_for_project($project_id);
 
             json_response([
                 'success' => true,
@@ -283,6 +312,80 @@ class Planning_projects extends EA_Controller
 
             json_response([
                 'success' => true,
+            ]);
+        } catch (Throwable $e) {
+            json_exception($e);
+        }
+    }
+
+    public function acknowledge_impacts(): void
+    {
+        try {
+            method('post');
+
+            if (cannot('edit', PRIV_USERS)) {
+                abort(403, 'Forbidden');
+            }
+
+            check('project_id', 'numeric');
+
+            $project_id =
+                (int) request('project_id');
+
+            $impact_ids = $this->db
+                ->select(
+                    'planning_assignment_impacts.id'
+                )
+                ->from(
+                    'planning_assignment_impacts'
+                )
+                ->join(
+                    'planning_assignments',
+                    'planning_assignments.id =
+                        planning_assignment_impacts.id_planning_assignments',
+                    'inner'
+                )
+                ->where(
+                    'planning_assignments.id_planning_projects',
+                    $project_id
+                )
+                ->where(
+                    'planning_assignment_impacts.status',
+                    'open'
+                )
+                ->get()
+                ->result_array();
+
+            if ($impact_ids) {
+                $this->db
+                    ->where_in(
+                        'id',
+                        array_column(
+                            $impact_ids,
+                            'id'
+                        )
+                    )
+                    ->update(
+                        'planning_assignment_impacts',
+                        [
+                            'status' =>
+                                'acknowledged',
+                            'decision' =>
+                                'continue',
+                            'decision_notes' =>
+                                'Warnung wurde zur Kenntnis genommen.',
+                            'id_users_decided_by' =>
+                                (int) session('user_id'),
+                            'update_datetime' =>
+                                date('Y-m-d H:i:s'),
+                        ]
+                    );
+            }
+
+            json_response([
+                'success' => true,
+                'acknowledged' =>
+                    count($impact_ids),
             ]);
         } catch (Throwable $e) {
             json_exception($e);

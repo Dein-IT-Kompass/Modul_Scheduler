@@ -44,6 +44,23 @@
     }
 
 
+    .fc-planning-calendar-event {
+        min-width: 0;
+        border-width: 2px !important;
+        box-shadow:
+            0 1px 3px rgba(0, 0, 0, .18);
+    }
+
+    .fc-planning-calendar-event .fc-event-main {
+        overflow: hidden;
+    }
+
+    .fc-planning-calendar-event .fc-event-title {
+        white-space: normal;
+        overflow-wrap: anywhere;
+        line-height: 1.25;
+    }
+
     .fc-project-assignment {
         opacity: .88;
         border-left-width: 5px !important;
@@ -122,11 +139,6 @@
                                             data-bs-target="#calendar-filter-projects">
 
                                         Projekte
-
-                                        <span id="calendar-project-count"
-                                              class="badge bg-secondary ms-2">
-                                            0
-                                        </span>
                                     </button>
                                 </h2>
 
@@ -148,11 +160,6 @@
                                             data-bs-target="#calendar-filter-personnel">
 
                                         Personal
-
-                                        <span id="calendar-personnel-count"
-                                              class="badge bg-secondary ms-2">
-                                            0
-                                        </span>
                                     </button>
                                 </h2>
 
@@ -186,11 +193,6 @@
                                             data-bs-target="#calendar-filter-resources">
 
                                         Ressourcen
-
-                                        <span id="calendar-resource-count"
-                                              class="badge bg-secondary ms-2">
-                                            0
-                                        </span>
                                     </button>
                                 </h2>
 
@@ -208,17 +210,6 @@
                         <hr>
 
                         <div class="d-flex gap-2">
-                            <button type="button"
-                                    id="calendar-view-show-all"
-                                    class="btn btn-sm btn-outline-primary">
-                                Alle anzeigen
-                            </button>
-
-                            <button type="button"
-                                    id="calendar-view-hide-all"
-                                    class="btn btn-sm btn-outline-secondary">
-                                Alle aus
-                            </button>
                         </div>
                     </div>
                 </div>

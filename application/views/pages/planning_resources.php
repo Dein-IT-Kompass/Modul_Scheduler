@@ -83,7 +83,7 @@
               *             <input id="planning-resource-name"
                                    class="form-control"
                                    maxlength="256"
-                                   placeholder="z. B. Minibagger CAT 301">
+                                   placeholder="Bezeichnung der Ressource">
                         </div>
 
 
@@ -96,7 +96,7 @@
                             <input id="planning-resource-inventory-number"
                                    class="form-control"
                                    maxlength="128"
-                                   placeholder="z. B. BAG-001">
+                                   placeholder="optional">
                         </div>
 
                         <div class="col-md-6">
@@ -108,11 +108,10 @@
                             <input id="planning-resource-location"
                                    class="form-control"
                                    maxlength="256"
-                                   placeholder="z. B. Betriebshof Bitburg">
+                                   placeholder="Standardstandort der Ressource">
                             <div class="form-text">
-                                Heimatstandort der Ressource. Bei einem Einsatz kann
-                                automatisch der Termin-, Kunden- oder Projektstandort
-                                verwendet werden.
+                                Optionaler Standardstandort. Bei einem Einsatz kann
+                                ein abweichender Standort verwendet werden.
                             </div>
                         </div>
 
@@ -160,7 +159,8 @@
                             </select>
 
                             <div class="form-text">
-                                Zum Beispiel ein Nasssauger im Transporter.
+                                Optional: Ressource ist einer anderen Ressource
+                                organisatorisch zugeordnet.
                             </div>
                         </div>
 
@@ -213,7 +213,172 @@
                             <textarea id="planning-resource-description"
                                       class="form-control"
                                       rows="5"
-                                      placeholder="Ausstattung, Führerscheinanforderung, Wartungshinweise …"></textarea>
+                                      placeholder="Beschreibung, Ausstattung oder sonstige Hinweise …"></textarea>
+                        </div>
+                    </div>
+
+                    <div id="resource-unavailability-section"
+                         class="d-none mt-4 pt-4 border-top">
+
+                        <div class="d-flex flex-wrap
+                                    justify-content-between
+                                    align-items-center gap-2 mb-3">
+                            <div>
+                                <h5 class="mb-1">
+                                    Verfügbarkeit
+                                </h5>
+
+                                <div class="text-muted small">
+                                    Defekte, Wartungen und zeitliche
+                                    Sperrungen dieser Ressource.
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button type="button"
+                                        id="show-resource-unavailability-history"
+                                        class="btn btn-sm
+                                               btn-outline-secondary">
+                                    <i class="fas fa-history me-2"></i>
+                                    Historie
+                                </button>
+
+                                <button type="button"
+                                        id="add-resource-unavailability"
+                                        class="btn btn-sm
+                                               btn-outline-primary">
+                                <i class="fas fa-plus me-2"></i>
+                                    Zeitraum eintragen
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="resource-availability-summary"
+                             class="alert d-none mb-3">
+                        </div>
+
+                        <div id="resource-unavailability-message"
+                             class="alert d-none">
+                        </div>
+
+                        <div id="resource-unavailability-editor"
+                             class="card bg-light d-none mb-3">
+                            <div class="card-body">
+                                <input type="hidden"
+                                       id="resource-unavailability-id">
+
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="resource-unavailability-type"
+                                               class="form-label">
+                                            Typ
+                                        </label>
+
+                                        <select id="resource-unavailability-type"
+                                                class="form-select">
+                                            <option value="defect">
+                                                Defekt
+                                            </option>
+                                            <option value="maintenance">
+                                                Wartung
+                                            </option>
+                                            <option value="blocked">
+                                                Gesperrt
+                                            </option>
+                                            <option value="other">
+                                                Sonstige Nichtverfügbarkeit
+                                            </option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label for="resource-unavailability-title"
+                                               class="form-label">
+                                            Bezeichnung
+                                        </label>
+
+                                        <input id="resource-unavailability-title"
+                                               class="form-control"
+                                               maxlength="256"
+                                               placeholder="z. B. Inspektion oder Defekt">
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label for="resource-unavailability-start"
+                                               class="form-label">
+                                            Beginn
+                                        </label>
+
+                                        <input id="resource-unavailability-start"
+                                               type="datetime-local"
+                                               class="form-control">
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label for="resource-unavailability-end"
+                                               class="form-label">
+                                            Ende
+                                        </label>
+
+                                        <input id="resource-unavailability-end"
+                                               type="datetime-local"
+                                               class="form-control">
+                                    </div>
+
+                                    <div class="col-12">
+                                        <div class="form-check">
+                                            <input type="checkbox"
+                                                   id="resource-unavailability-open-end"
+                                                   class="form-check-input">
+
+                                            <label for="resource-unavailability-open-end"
+                                                   class="form-check-label">
+                                                Ende noch unbekannt
+                                            </label>
+                                        </div>
+
+                                        <div class="form-text">
+                                            Für Defekte und Sperrungen kann
+                                            das Ende offen bleiben.
+                                            Wartungsfenster benötigen einen
+                                            Endzeitpunkt.
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <label for="resource-unavailability-notes"
+                                               class="form-label">
+                                            Bemerkung / Maßnahme
+                                        </label>
+
+                                        <textarea id="resource-unavailability-notes"
+                                                  class="form-control"
+                                                  rows="3"
+                                                  placeholder="Fehlerbild, Werkstatt, Reparatur beauftragt, Ersatz organisiert …"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card-footer d-flex gap-2">
+                                <button type="button"
+                                        id="save-resource-unavailability"
+                                        class="btn btn-primary">
+                                    Speichern
+                                </button>
+
+                                <button type="button"
+                                        id="cancel-resource-unavailability"
+                                        class="btn btn-outline-secondary">
+                                    Abbrechen
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="resource-unavailability-list"
+                             class="list-group">
+                            <div class="text-muted text-center py-4">
+                                Keine Zeiträume vorhanden.
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -238,6 +403,49 @@
                         <i class="fas fa-trash me-2"></i>
                         Löschen
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade"
+     id="resource-unavailability-history-modal"
+     tabindex="-1"
+     aria-hidden="true">
+    <div class="modal-dialog modal-xl
+                modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    Verfügbarkeits- und Ausfallhistorie
+                </h5>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Schließen">
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-hover
+                                  align-middle mb-0">
+                        <thead>
+                        <tr>
+                            <th>Typ</th>
+                            <th>Bezeichnung</th>
+                            <th>Beginn</th>
+                            <th>Ende</th>
+                            <th>Status</th>
+                            <th>Bemerkung</th>
+                        </tr>
+                        </thead>
+
+                        <tbody id="resource-unavailability-history-body">
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

@@ -57,6 +57,156 @@ App.Pages.Calendar = (function () {
         };
     }
 
+    function initializeCalendarPickerOffcanvas() {
+        if (
+            document.getElementById(
+                'calendar-picker-offcanvas'
+            )
+        ) {
+            return;
+        }
+
+        const $button =
+            $('#calendar-view-config-button');
+
+        const $dropdown =
+            $button.closest('.dropdown');
+
+        const $menu =
+            $dropdown
+                .find('.dropdown-menu')
+                .first();
+
+        if (!$button.length || !$menu.length) {
+            return;
+        }
+
+        const $offcanvas = $('<div/>', {
+            id: 'calendar-picker-offcanvas',
+            class: 'offcanvas offcanvas-start',
+            tabindex: -1,
+            'aria-labelledby':
+                'calendar-picker-offcanvas-title',
+            css: {
+                width: 'min(480px, 96vw)',
+            },
+        });
+
+        const $header = $('<div/>', {
+            class:
+                'offcanvas-header border-bottom',
+            html: [
+                $('<div/>', {
+                    html: [
+                        $('<h5/>', {
+                            id:
+                                'calendar-picker-offcanvas-title',
+                            class:
+                                'offcanvas-title mb-1',
+                            text:
+                                'Kalender auswählen',
+                        }),
+
+                        $('<div/>', {
+                            class:
+                                'small text-muted',
+                            text:
+                                'Mehrere Kalender können gleichzeitig angezeigt werden.',
+                        }),
+                    ],
+                }),
+
+                $('<button/>', {
+                    type: 'button',
+                    class: 'btn-close',
+                    'data-bs-dismiss': 'offcanvas',
+                    'aria-label': 'Schließen',
+                }),
+            ],
+        });
+
+        const $body = $('<div/>', {
+            class:
+                'offcanvas-body d-flex flex-column',
+        });
+
+        const $content = $('<div/>', {
+            class: 'flex-grow-1',
+        });
+
+        // Den vorhandenen Picker-Inhalt übernehmen.
+        $menu.children().appendTo($content);
+
+        // Alte Alle-aus-Schalter aus dem Dropdown entfernen.
+        $content
+            .find('#calendar-view-hide-all')
+            .closest('.d-flex')
+            .remove();
+
+        $content
+            .find('#calendar-view-show-all')
+            .remove();
+
+        const $footer = $('<div/>', {
+            class:
+                'border-top pt-3 mt-3 ' +
+                'd-flex justify-content-between gap-2',
+            html: [
+                $('<button/>', {
+                    type: 'button',
+                    id: 'calendar-picker-clear',
+                    class:
+                        'btn btn-outline-secondary',
+                    text: 'Alle aus',
+                }),
+
+                $('<button/>', {
+                    type: 'button',
+                    class: 'btn btn-primary',
+                    'data-bs-dismiss': 'offcanvas',
+                    text: 'Übernehmen',
+                }),
+            ],
+        });
+
+        $body.append(
+            $content,
+            $footer
+        );
+
+        $offcanvas.append(
+            $header,
+            $body
+        );
+
+        $('body').append($offcanvas);
+
+        // Alten Dropdown-Auslöser in Offcanvas-Auslöser verwandeln.
+        $button
+            .removeAttr('data-bs-auto-close')
+            .removeAttr('aria-expanded')
+            .removeClass('dropdown-toggle')
+            .attr(
+                'data-bs-toggle',
+                'offcanvas'
+            )
+            .attr(
+                'data-bs-target',
+                '#calendar-picker-offcanvas'
+            )
+            .attr(
+                'aria-controls',
+                'calendar-picker-offcanvas'
+            );
+
+        $dropdown
+            .removeClass('dropdown')
+            .addClass('w-100');
+
+        // Das alte leere Dropdown-Menü entfernen.
+        $menu.remove();
+    }
+
     function populateCalendarViewFilters() {
         const calendars =
             vars('planning_calendars') || [];
@@ -297,65 +447,8 @@ App.Pages.Calendar = (function () {
         });
 
         applyEventVisibilityToControls();
+        initializeCalendarPickerOffcanvas();
         populateCalendarViewFilters();
-
-        // calendar-picker-keep-open
-        const $calendarPicker =
-            $('#calendar-view-config-button')
-                .closest('.dropdown');
-
-        const $calendarPickerMenu =
-            $calendarPicker.find('.dropdown-menu');
-
-        // Interaktionen innerhalb des Pickers dürfen das Dropdown
-        // nicht als normale Einzelauswahl schließen.
-        $calendarPickerMenu.on(
-            'click',
-            (event) => {
-                event.stopPropagation();
-            }
-        );
-
-        // Bootstrap kann das Dropdown trotz stopPropagation
-        // über seine eigene Auto-Close-Logik schließen.
-        // Solange der Fokus/Klick aus dem Picker selbst kommt,
-        // verhindern wir dieses Schließen explizit.
-        $calendarPicker.on(
-            'hide.bs.dropdown',
-            (event) => {
-                const clickEvent =
-                    event.clickEvent;
-
-                if (
-                    clickEvent &&
-                    $calendarPickerMenu[0]?.contains(
-                        clickEvent.target
-                    )
-                ) {
-                    event.preventDefault();
-                }
-            }
-        );
-
-
-        const calendarPickerButton =
-            document.getElementById(
-                'calendar-view-config-button'
-            );
-
-        if (
-            calendarPickerButton &&
-            window.bootstrap?.Dropdown
-        ) {
-            bootstrap.Dropdown.getOrCreateInstance(
-                calendarPickerButton,
-                {
-                    autoClose: 'outside',
-                }
-            );
-        }
-
-
 
         $calendarPage.on(
             'change',
@@ -363,14 +456,47 @@ App.Pages.Calendar = (function () {
             saveEventVisibilityFromControls
         );
 
-        $calendarPage.on(
-            'change',
-            '.calendar-view-filter-option',
-            (event) => {
-                event.stopPropagation();
-                saveCalendarViewFilters();
-            }
-        );
+        $(document)
+            .off(
+                'change.calendarPicker',
+                '#calendar-picker-offcanvas ' +
+                '.calendar-view-filter-option'
+            )
+            .on(
+                'change.calendarPicker',
+                '#calendar-picker-offcanvas ' +
+                '.calendar-view-filter-option',
+                (event) => {
+                    event.stopPropagation();
+                    saveCalendarViewFilters();
+                }
+            );
+
+        $(document)
+            .off(
+                'click.calendarClear',
+                '#calendar-picker-clear'
+            )
+            .on(
+                'click.calendarClear',
+                '#calendar-picker-clear',
+                (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    selectedCalendarIds = [];
+
+                    $(
+                        '#calendar-picker-offcanvas ' +
+                        '.calendar-view-filter-option'
+                    ).prop('checked', false);
+
+                    updateCalendarViewFilterCounts();
+
+                    $('#reload-appointments')
+                        .trigger('click');
+                }
+            );
 
         $calendarPage.on(
             'change',
@@ -444,14 +570,6 @@ App.Pages.Calendar = (function () {
         );
 
 
-
-        $calendarPage.on(
-            'click',
-            '#calendar-filter .dropdown-menu',
-            (event) => {
-                event.stopPropagation();
-            }
-        );
 
         $calendarPage.on(
             'click',

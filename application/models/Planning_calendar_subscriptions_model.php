@@ -15,6 +15,7 @@ class Planning_calendar_subscriptions_model extends EA_Model
                  is_active,
                  expires_datetime,
                  last_access_datetime,
+                 token_encrypted,
                  create_datetime,
                  update_datetime'
             )
@@ -26,9 +27,25 @@ class Planning_calendar_subscriptions_model extends EA_Model
             ->get('planning_calendar_subscriptions')
             ->row_array();
 
+        $token = null;
+
+        if (
+            $subscription &&
+            !empty($subscription['token_encrypted'])
+        ) {
+            $token = $this->decrypt_token(
+                $subscription['token_encrypted']
+            );
+        }
+
+        if ($subscription) {
+            unset($subscription['token_encrypted']);
+        }
+
         return [
             'calendar' => $calendar,
             'subscription' => $subscription ?: null,
+            'token' => $token,
         ];
     }
 
@@ -55,6 +72,8 @@ class Planning_calendar_subscriptions_model extends EA_Model
                 'name' =>
                     'Einsatzkalender ' . $calendar['name'],
                 'token_hash' => hash('sha256', $token),
+                'token_encrypted' =>
+                    $this->encrypt_token($token),
                 'is_active' => 1,
                 'expires_datetime' => null,
                 'last_access_datetime' => null,
@@ -158,7 +177,15 @@ class Planning_calendar_subscriptions_model extends EA_Model
             ->select(
                 'planning_assignments.*,
                  planning_projects.name AS project_name,
-                 planning_project_phases.name AS phase_name'
+                 planning_projects.id_users_customer,
+                 planning_project_phases.name AS phase_name,
+                 customers.first_name AS customer_first_name,
+                 customers.last_name AS customer_last_name,
+                 customers.phone_number AS customer_phone_number,
+                 customers.mobile_number AS customer_mobile_number,
+                 customers.address AS customer_address,
+                 customers.zip_code AS customer_zip_code,
+                 customers.city AS customer_city'
             )
             ->from('planning_calendar_event_calendars')
             ->join(
@@ -185,6 +212,12 @@ class Planning_calendar_subscriptions_model extends EA_Model
                     planning_assignments.id_planning_project_phases',
                 'left'
             )
+            ->join(
+                'users AS customers',
+                'customers.id =
+                    planning_projects.id_users_customer',
+                'left'
+            )
             ->where(
                 'planning_calendar_event_calendars.id_planning_calendars',
                 $calendar_id
@@ -206,7 +239,12 @@ class Planning_calendar_subscriptions_model extends EA_Model
 
         foreach ($assignments as &$assignment) {
             $assignment['resources'] = $this->db
-                ->select('planning_resources.name')
+                ->select(
+                    'planning_resources.id,
+                     planning_resources.name,
+                     planning_resources.resource_type,
+                     planning_resource_categories.name AS category_name'
+                )
                 ->from('planning_assignment_resources')
                 ->join(
                     'planning_resources',
@@ -214,11 +252,24 @@ class Planning_calendar_subscriptions_model extends EA_Model
                         planning_assignment_resources.id_planning_resources',
                     'inner'
                 )
+                ->join(
+                    'planning_resource_categories',
+                    'planning_resource_categories.id =
+                        planning_resources.id_planning_resource_categories',
+                    'left'
+                )
                 ->where(
                     'planning_assignment_resources.id_planning_assignments',
                     (int) $assignment['id']
                 )
-                ->order_by('planning_resources.name', 'ASC')
+                ->order_by(
+                    'planning_resource_categories.name',
+                    'ASC'
+                )
+                ->order_by(
+                    'planning_resources.name',
+                    'ASC'
+                )
                 ->get()
                 ->result_array();
 
@@ -309,6 +360,56 @@ class Planning_calendar_subscriptions_model extends EA_Model
                 ['id' => (int) $this->db->insert_id()]
             )
             ->row_array();
+    }
+
+    private function encrypt_token(
+        string $token
+    ): string {
+        $app = get_instance();
+
+        $app->load->library('encryption');
+
+        $encrypted = $app->encryption->encrypt(
+            $token
+        );
+
+        if ($encrypted === false) {
+            throw new RuntimeException(
+                'Kalenderzugang konnte nicht verschlüsselt werden.'
+            );
+        }
+
+        return base64_encode($encrypted);
+    }
+
+    private function decrypt_token(
+        string $encrypted
+    ): ?string {
+        $app = get_instance();
+
+        $app->load->library('encryption');
+
+        $decoded = base64_decode(
+            $encrypted,
+            true
+        );
+
+        if ($decoded === false) {
+            return null;
+        }
+
+        $token = $app->encryption->decrypt(
+            $decoded
+        );
+
+        if (
+            $token === false ||
+            !preg_match('/^[a-f0-9]{64}$/i', $token)
+        ) {
+            return null;
+        }
+
+        return strtolower($token);
     }
 
     private function disable_for_calendar(

@@ -265,6 +265,15 @@ class Planning_assignments_model extends EA_Model
                 $now
             );
 
+            $this->sync_calendar_event(
+                $assignment_id,
+                $project_id,
+                $employees,
+                $teams,
+                $resources,
+                $now
+            );
+
             if ($this->db->trans_status() === false) {
                 throw new RuntimeException(
                     'Der Einsatz konnte nicht vollständig gespeichert werden.'
@@ -289,9 +298,189 @@ class Planning_assignments_model extends EA_Model
             );
         }
 
+        $this->db->trans_begin();
+
+        try {
+            if (
+                $this->db->table_exists(
+                    'planning_calendar_events'
+                )
+            ) {
+                $this->db->delete(
+                    'planning_calendar_events',
+                    [
+                        'event_type' =>
+                            'project_assignment',
+                        'reference_id' =>
+                            $assignment_id,
+                    ]
+                );
+            }
+
+            $this->db->delete(
+                'planning_assignments',
+                ['id' => $assignment_id]
+            );
+
+            if ($this->db->trans_status() === false) {
+                throw new RuntimeException(
+                    'Der Projekteinsatz konnte nicht ' .
+                    'vollständig gelöscht werden.'
+                );
+            }
+
+            $this->db->trans_commit();
+        } catch (Throwable $e) {
+            $this->db->trans_rollback();
+
+            throw $e;
+        }
+    }
+
+    private function sync_calendar_event(
+        int $assignment_id,
+        int $project_id,
+        array $employee_ids,
+        array $team_ids,
+        array $resource_ids,
+        string $now
+    ): void {
+        if (
+            !$this->db->table_exists(
+                'planning_calendar_events'
+            ) ||
+            !$this->db->table_exists(
+                'planning_calendar_event_calendars'
+            ) ||
+            !$this->db->table_exists(
+                'planning_calendars'
+            )
+        ) {
+            return;
+        }
+
+        $event = $this->db
+            ->select('id')
+            ->get_where(
+                'planning_calendar_events',
+                [
+                    'event_type' =>
+                        'project_assignment',
+                    'reference_id' =>
+                        $assignment_id,
+                ]
+            )
+            ->row_array();
+
+        if ($event) {
+            $event_id = (int) $event['id'];
+
+            $this->db
+                ->where('id', $event_id)
+                ->update(
+                    'planning_calendar_events',
+                    [
+                        'update_datetime' => $now,
+                    ]
+                );
+        } else {
+            $this->db->insert(
+                'planning_calendar_events',
+                [
+                    'event_type' =>
+                        'project_assignment',
+                    'reference_id' =>
+                        $assignment_id,
+                    'create_datetime' => $now,
+                    'update_datetime' => $now,
+                ]
+            );
+
+            $event_id =
+                (int) $this->db->insert_id();
+        }
+
+        /*
+         * Die Zuordnungen werden vollständig neu aufgebaut.
+         * Dadurch verschwinden entfernte Mitarbeiter, Teams und
+         * Ressourcen ebenfalls aus ihren Kalendern.
+         */
         $this->db->delete(
-            'planning_assignments',
-            ['id' => $assignment_id]
+            'planning_calendar_event_calendars',
+            [
+                'id_planning_calendar_events' =>
+                    $event_id,
+            ]
+        );
+
+        $this->attach_calendar(
+            $event_id,
+            'project',
+            $project_id,
+            $now
+        );
+
+        foreach ($employee_ids as $employee_id) {
+            $this->attach_calendar(
+                $event_id,
+                'employee',
+                (int) $employee_id,
+                $now
+            );
+        }
+
+        foreach ($team_ids as $team_id) {
+            $this->attach_calendar(
+                $event_id,
+                'team',
+                (int) $team_id,
+                $now
+            );
+        }
+
+        foreach ($resource_ids as $resource_id) {
+            $this->attach_calendar(
+                $event_id,
+                'resource',
+                (int) $resource_id,
+                $now
+            );
+        }
+    }
+
+    private function attach_calendar(
+        int $event_id,
+        string $entity_type,
+        int $entity_id,
+        string $now
+    ): void {
+        if ($entity_id < 1) {
+            return;
+        }
+
+        $calendar = $this->db
+            ->select('id')
+            ->from('planning_calendars')
+            ->where('entity_type', $entity_type)
+            ->where('entity_id', $entity_id)
+            ->where('is_active', 1)
+            ->limit(1)
+            ->get()
+            ->row_array();
+
+        if (!$calendar) {
+            return;
+        }
+
+        $this->db->insert(
+            'planning_calendar_event_calendars',
+            [
+                'id_planning_calendar_events' =>
+                    $event_id,
+                'id_planning_calendars' =>
+                    (int) $calendar['id'],
+                'create_datetime' => $now,
+            ]
         );
     }
 

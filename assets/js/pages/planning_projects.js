@@ -62,21 +62,58 @@ $(function () {
             .get();
     }
 
+    function selectedCustomerAddress() {
+        return String(
+            $('#planning-project-customer')
+                .find(':selected')
+                .data('address') || ''
+        ).trim();
+    }
+
+    function updateProjectCustomerInfo() {
+        const $selected =
+            $('#planning-project-customer').find(':selected');
+
+        const address = String(
+            $selected.data('address') || ''
+        ).trim();
+
+        const phone = String(
+            $selected.data('phone') || ''
+        ).trim();
+
+        $('#planning-project-customer-address').text(
+            address || 'Keine Kundenadresse hinterlegt.'
+        );
+
+        $('#planning-project-customer-phone').text(
+            phone ? `Telefon: ${phone}` : ''
+        );
+    }
+
+    function updateProjectLocationVisibility() {
+        $('#planning-project-location-wrapper').toggleClass(
+            'd-none',
+            !$('#planning-project-custom-location').prop('checked')
+        );
+    }
+
     function resetEditor() {
         $('#planning-project-id').val('');
         $('#planning-project-name').val('');
         $('#planning-project-status').val('planned');
+        $('#planning-project-customer').val('');
         $('#planning-project-location').val('');
+        $('#planning-project-custom-location').prop('checked', false);
+        updateProjectCustomerInfo();
+        updateProjectLocationVisibility();
+
         $('#planning-project-lead').val('');
         $('#planning-project-start-date').val('');
         $('#planning-project-end-date').val('');
         $('#planning-project-color').val('#7cbae8');
         $('#planning-project-description').val('');
 
-        setChecked('.project-team', []);
-        setChecked('.project-employee', []);
-        setChecked('.project-resource', []);
-        setChecked('.project-service', []);
 
         $('#planning-project-editor-title').text('Neues Projekt');
         $('#planning-project-summary').text('');
@@ -85,6 +122,94 @@ $(function () {
         clearMessage();
 
         $editor.find('.nav-link:first').trigger('click');
+    }
+
+    function projectDateDisplay(value) {
+        if (!value) {
+            return '';
+        }
+
+        const date = moment(value, 'YYYY-MM-DD', true);
+
+        return date.isValid()
+            ? date.format('DD.MM.YYYY')
+            : '';
+    }
+
+    function normalizeProjectDate(value) {
+        let input = String(value || '').trim();
+
+        if (!input) {
+            return '';
+        }
+
+        // 23112026 -> 23.11.2026
+        if (/^\d{8}$/.test(input)) {
+            input =
+                input.slice(0, 2) + '.' +
+                input.slice(2, 4) + '.' +
+                input.slice(4, 8);
+        }
+
+        // 231126 -> 23.11.26
+        if (/^\d{6}$/.test(input)) {
+            input =
+                input.slice(0, 2) + '.' +
+                input.slice(2, 4) + '.' +
+                input.slice(4, 6);
+        }
+
+        const formats = [
+            'DD.MM.YYYY',
+            'DD.MM.YY',
+            'D.M.YYYY',
+            'D.M.YY',
+        ];
+
+        const date = moment(
+            input,
+            formats,
+            true
+        );
+
+        if (!date.isValid()) {
+            return null;
+        }
+
+        return date.format('DD.MM.YYYY');
+    }
+
+    function projectDateServer(value) {
+        const normalized = normalizeProjectDate(value);
+
+        if (normalized === '') {
+            return null;
+        }
+
+        if (normalized === null) {
+            return null;
+        }
+
+        return moment(
+            normalized,
+            'DD.MM.YYYY',
+            true
+        ).format('YYYY-MM-DD');
+    }
+
+    function isValidProjectDate(value) {
+        return normalizeProjectDate(value) !== null;
+    }
+
+    function normalizeProjectDateField(selector) {
+        const $field = $(selector);
+        const normalized = normalizeProjectDate(
+            $field.val()
+        );
+
+        if (normalized !== null && normalized !== '') {
+            $field.val(normalized);
+        }
     }
 
     function formatDate(value) {
@@ -196,10 +321,35 @@ $(function () {
                             }),
                         ],
                     }),
-                    $('<span/>', {
-                        class: `badge bg-${status[1]}`,
-                        text: status[0],
-                    }),
+                    Number(
+                        project.impact_count || 0
+                    ) > 0
+                        ? $('<span/>', {
+                            type: 'button',
+                            class:
+                                'badge rounded-pill border-0 ' +
+                                'project-impact-acknowledge ' +
+                                (
+                                    Number(
+                                        project.impact_open_count || 0
+                                    ) > 0
+                                        ? 'text-bg-danger'
+                                        : 'text-bg-warning text-dark'
+                                ),
+                            'data-project-id': project.id,
+                            title: (project.impacts || [])
+                                .map(
+                                    (impact) =>
+                                        `${impact.assignment_title}: ` +
+                                        `${impact.message}`
+                                )
+                                .join('\n'),
+                            html:
+                                '<i class="fas ' +
+                                'fa-triangle-exclamation ' +
+                                'me-1"></i>ACHTUNG',
+                        })
+                        : null,
                 ],
             }).appendTo($list);
         });
@@ -212,17 +362,30 @@ $(function () {
         $('#planning-project-id').val(project.id);
         $('#planning-project-name').val(project.name);
         $('#planning-project-status').val(project.status);
+        $('#planning-project-customer').val(
+            project.id_users_customer || ''
+        );
+
         $('#planning-project-location').val(
             project.location || ''
         );
+
+        $('#planning-project-custom-location').prop(
+            'checked',
+            Boolean(String(project.location || '').trim())
+        );
+
+        updateProjectCustomerInfo();
+        updateProjectLocationVisibility();
+
         $('#planning-project-lead').val(
             project.id_users_project_lead || ''
         );
         $('#planning-project-start-date').val(
-            project.start_date || ''
+            projectDateDisplay(project.start_date)
         );
         $('#planning-project-end-date').val(
-            project.end_date || ''
+            projectDateDisplay(project.end_date)
         );
         $('#planning-project-color').val(
             project.color || '#7cbae8'
@@ -231,10 +394,6 @@ $(function () {
             project.description || ''
         );
 
-        setChecked('.project-team', project.teams);
-        setChecked('.project-employee', project.employees);
-        setChecked('.project-resource', project.resources);
-        setChecked('.project-service', project.services);
 
         $('#planning-project-editor-title')
             .text('Projekt bearbeiten');
@@ -661,7 +820,10 @@ $(function () {
             'planned'
         );
         $('#project-assignment-location').val(
-            activeProject?.location || ''
+            activeProject?.location ||
+            selectedCustomerAddress() ||
+            activeProject?.customer_address ||
+            ''
         );
         $('#project-assignment-priority').val('70');
         $('#project-assignment-color').val(
@@ -956,23 +1118,114 @@ $(function () {
             id: $('#planning-project-id').val() || undefined,
             name: $('#planning-project-name').val().trim(),
             status: $('#planning-project-status').val(),
+            id_users_customer:
+                $('#planning-project-customer').val() || null,
             location:
-                $('#planning-project-location').val().trim(),
+                $('#planning-project-custom-location').prop('checked')
+                    ? $('#planning-project-location').val().trim()
+                    : '',
             id_users_project_lead:
                 $('#planning-project-lead').val() || null,
             start_date:
-                $('#planning-project-start-date').val() || null,
+                projectDateServer(
+                    $('#planning-project-start-date').val()
+                ),
             end_date:
-                $('#planning-project-end-date').val() || null,
+                projectDateServer(
+                    $('#planning-project-end-date').val()
+                ),
             color: $('#planning-project-color').val(),
             description:
                 $('#planning-project-description').val().trim(),
-            teams: selectedIds('.project-team'),
-            employees: selectedIds('.project-employee'),
-            resources: selectedIds('.project-resource'),
-            services: selectedIds('.project-service'),
         };
     }
+
+    $('#planning-project-start-date, #planning-project-end-date')
+        .on('blur', function () {
+            normalizeProjectDateField(this);
+        });
+
+    $('#planning-project-customer').on(
+        'change',
+        updateProjectCustomerInfo
+    );
+
+    $('#planning-project-custom-location').on(
+        'change',
+        updateProjectLocationVisibility
+    );
+
+    $list.on(
+        'click',
+        '.project-impact-acknowledge',
+        (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+
+            const $button =
+                $(event.currentTarget);
+
+            const projectId = Number(
+                $button.data('project-id')
+            );
+
+            const project = projects.find(
+                (item) =>
+                    Number(item.id) === projectId
+            );
+
+            const impacts =
+                project?.impacts || [];
+
+            const details = impacts.length
+                ? impacts
+                    .map(
+                        (impact) =>
+                            `${impact.assignment_title || 'Einsatz'}\n\n` +
+                            `${impact.message || 'Beeinträchtigung erkannt.'}`
+                    )
+                    .join('\n\n--------------------\n\n')
+                : 'Für dieses Projekt wurde eine ' +
+                  'Beeinträchtigung erkannt.';
+
+            const confirmationText =
+                'Achtung: Einsatz möglicherweise beeinträchtigt\n\n' +
+                details +
+                '\n\nMit „OK“ bestätigst du, dass diese Warnung ' +
+                'zur Kenntnis genommen wurde. ' +
+                'Die Ursache bleibt bestehen.';
+
+            if (
+                !projectId ||
+                !window.confirm(confirmationText)
+            ) {
+                return;
+            }
+
+            $.post(
+                App.Utils.Url.siteUrl(
+                    'planning_projects/acknowledge_impacts'
+                ),
+                {
+                    csrf_token: vars('csrf_token'),
+                    project_id: projectId,
+                }
+            )
+                .done(() => {
+                    notify(
+                        'Warnung wurde zur Kenntnis genommen.'
+                    );
+
+                    loadProjects();
+                })
+                .fail((xhr) => {
+                    notify(
+                        xhr.responseJSON?.message ||
+                        'Warnung konnte nicht bestätigt werden.'
+                    );
+                });
+        }
+    );
 
     $('#planning-project-timeline-tab-button').on(
         'shown.bs.tab',
@@ -1257,11 +1510,69 @@ $(function () {
     $('#save-planning-project').on('click', () => {
         clearMessage();
 
+        normalizeProjectDateField(
+            '#planning-project-start-date'
+        );
+
+        normalizeProjectDateField(
+            '#planning-project-end-date'
+        );
+
+        // Wenn kein Planungsstart angegeben wurde,
+        // beginnt die Planung mit dem heutigen Datum.
+        if (
+            !String(
+                $('#planning-project-start-date').val() || ''
+            ).trim()
+        ) {
+            $('#planning-project-start-date').val(
+                moment().format('DD.MM.YYYY')
+            );
+        }
+
         const project = collectProject();
 
         if (!project.name) {
             showMessage('Bitte einen Projektname eingeben.');
             return;
+        }
+
+        if (!project.id_users_customer) {
+            showMessage('Bitte einen Kunden auswählen.');
+            return;
+        }
+
+        if (
+            $('#planning-project-custom-location').prop('checked') &&
+            !project.location
+        ) {
+            showMessage(
+                'Bitte die abweichende Baustellenadresse eingeben.'
+            );
+            return;
+        }
+
+        if (
+            !isValidProjectDate(
+                $('#planning-project-start-date').val()
+            ) ||
+            !isValidProjectDate(
+                $('#planning-project-end-date').val()
+            )
+        ) {
+            showMessage(
+                'Bitte ein gültiges Datum im Format TT.MM.JJJJ eingeben.'
+            );
+            return;
+        }
+
+        if (
+            project.status === 'completed' &&
+            !project.end_date
+        ) {
+            project.end_date = moment().format(
+                'YYYY-MM-DD'
+            );
         }
 
         if (

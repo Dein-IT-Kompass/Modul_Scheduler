@@ -138,6 +138,46 @@
             </li>
 <?php endif; ?>
 
+            <li class="nav-item dropdown text-center"
+                id="header-notifications">
+
+                <a class="nav-link text-white py-3 px-3 position-relative"
+                   href="#"
+                   id="header-notifications-toggle"
+                   data-bs-toggle="dropdown"
+                   data-bs-auto-close="outside"
+                   aria-expanded="false"
+                   title="Meldungen">
+
+                    <i class="fas fa-bell"></i>
+
+                    <span id="header-notification-count"
+                          class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none">
+                        0
+                    </span>
+                </a>
+
+                <div class="dropdown-menu dropdown-menu-end p-0 shadow"
+                     id="header-notification-menu"
+                     style="width:min(420px,95vw); max-height:70vh; overflow-y:auto;">
+
+                    <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
+                        <strong>Meldungen</strong>
+
+                        <a href="<?= site_url('notifications') ?>"
+                           class="small">
+                            Alle anzeigen
+                        </a>
+                    </div>
+
+                    <div id="header-notification-list">
+                        <div class="text-center text-muted p-4">
+                            Keine aktuellen Meldungen.
+                        </div>
+                    </div>
+                </div>
+            </li>
+
             <?php $hidden = can('view', PRIV_SYSTEM_SETTINGS) || can('view', PRIV_USER_SETTINGS) ? '' : 'd-none'; ?>
             <?php $active = $active_menu == PRIV_SYSTEM_SETTINGS ? 'active' : ''; ?>
             <li class="nav-item dropdown text-center <?= $active . $hidden ?>" style="min-width: 100px;">
@@ -163,9 +203,10 @@
                         <?= lang('about') ?>
                     </a>
                     <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" href="<?= site_url('booking') ?>" target="_blank">
-                        <i class="fas fa-external-link me-2"></i>
-                        <?= lang('booking') ?>
+                    <a class="dropdown-item"
+                       href="<?= site_url('notifications') ?>">
+                        <i class="fas fa-bell me-2"></i>
+                        Meldungs-Dashboard
                     </a>
                     <div class="dropdown-divider"></div>
                     <a class="dropdown-item" href="<?= site_url('logout') ?>">

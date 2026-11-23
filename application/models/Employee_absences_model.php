@@ -20,6 +20,37 @@ class Employee_absences_model extends EA_Model
             ->result_array();
     }
 
+    public function get_for_user_ids(array $user_ids): array
+    {
+        $user_ids = array_values(
+            array_unique(
+                array_filter(
+                    array_map('intval', $user_ids)
+                )
+            )
+        );
+
+        if (empty($user_ids)) {
+            return [];
+        }
+
+        return $this->base_query()
+            ->where_in(
+                'employee_absences.id_users_employee',
+                $user_ids
+            )
+            ->order_by(
+                'employee_absences.start_date',
+                'DESC'
+            )
+            ->order_by(
+                'employee_absences.id',
+                'DESC'
+            )
+            ->get()
+            ->result_array();
+    }
+
     public function find(int $absence_id): ?array
     {
         $record = $this->base_query()
@@ -30,12 +61,17 @@ class Employee_absences_model extends EA_Model
         return $record ?: null;
     }
 
-    public function create(array $absence, int $requesting_user_id): int
-    {
+    public function create(
+        array $absence,
+        int $requesting_user_id,
+        bool $create_approved = false
+    ): int {
         $this->validate_absence($absence);
 
         $now = date('Y-m-d H:i:s');
         $type = $absence['absence_type'];
+
+        $is_approved = $type === 'sick' || $create_approved;
 
         $record = [
             'id_users_employee' => (int) $absence['id_users_employee'],
@@ -49,15 +85,21 @@ class Employee_absences_model extends EA_Model
                 ? null
                 : ($absence['end_time'] ?? null),
             'all_day' => !empty($absence['all_day']) ? 1 : 0,
-            'status' => $type === 'sick' ? 'approved' : 'requested',
+            'status' => $is_approved ? 'approved' : 'requested',
             'notes' => trim((string) ($absence['notes'] ?? '')),
             'requested_by' => $requesting_user_id,
             'requested_at' => $now,
-            'decided_by' => $type === 'sick' ? $requesting_user_id : null,
-            'decided_at' => $type === 'sick' ? $now : null,
+            'decided_by' => $is_approved
+                ? $requesting_user_id
+                : null,
+            'decided_at' => $is_approved ? $now : null,
             'decision_note' => $type === 'sick'
                 ? 'Krankmeldung automatisch als Abwesenheit aktiviert.'
-                : null,
+                : (
+                    $create_approved
+                        ? 'Durch berechtigte Person direkt genehmigt eingetragen.'
+                        : null
+                ),
             'create_datetime' => $now,
             'update_datetime' => $now,
         ];
