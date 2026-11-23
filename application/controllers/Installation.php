@@ -82,11 +82,17 @@ if (is_app_partially_installed()) {
 
             check('admin', 'array');
             check('company', 'array');
+            check('database', 'array');
             check('enabled_modules', 'array|null');
             check('resource_icon_packs', 'array|null');
 
             $admin = request('admin');
             $company = request('company');
+            $database = request('database');
+
+            $this->configure_database_namespace(
+                $database
+            );
 
 
             $allowed_modules = ['scheduler', 'erp'];
@@ -284,4 +290,185 @@ if (is_app_partially_installed()) {
             json_exception($e);
         }
     }
+    private function configure_database_namespace(
+        array $database
+    ): void {
+        $mode = (string) (
+            $database['mode'] ?? 'prefixed'
+        );
+
+        if (
+            !in_array(
+                $mode,
+                ['empty', 'prefixed'],
+                true
+            )
+        ) {
+            throw new InvalidArgumentException(
+                'Der Datenbankmodus ist ungültig.'
+            );
+        }
+
+        $prefix = trim(
+            (string) ($database['prefix'] ?? '')
+        );
+
+        if ($mode === 'prefixed' && $prefix === '') {
+            throw new InvalidArgumentException(
+                'Für eine bestehende Datenbank ist ein Tabellenpräfix erforderlich.'
+            );
+        }
+
+        if (
+            $prefix !== '' &&
+            !preg_match(
+                '/^[A-Za-z][A-Za-z0-9_]{0,30}_?$/',
+                $prefix
+            )
+        ) {
+            throw new InvalidArgumentException(
+                'Das Tabellenpräfix darf nur Buchstaben, Zahlen und Unterstriche enthalten, muss mit einem Buchstaben beginnen und darf höchstens 32 Zeichen lang sein.'
+            );
+        }
+
+        if (
+            $prefix !== '' &&
+            !str_ends_with($prefix, '_')
+        ) {
+            $prefix .= '_';
+        }
+
+        $existing_tables =
+            $this->find_namespace_tables($prefix);
+
+        if ($existing_tables) {
+            $examples = implode(
+                ', ',
+                array_slice($existing_tables, 0, 5)
+            );
+
+            throw new RuntimeException(
+                'Der gewählte Tabellenbereich ist nicht leer. Bereits vorhanden: '
+                . $examples
+                . '. Bitte verwenden Sie ein anderes Präfix oder eine leere Datenbank.'
+            );
+        }
+
+        $this->write_database_prefix($prefix);
+
+        // Die aktuelle Anfrage läuft bereits mit einer geöffneten
+        // CodeIgniter-Datenbankverbindung. Für die Migration muss
+        // deshalb auch die aktive Verbindung umgestellt werden.
+        $this->db->dbprefix = $prefix;
+    }
+
+    private function find_namespace_tables(
+        string $prefix
+    ): array {
+        $query = $this->db->query(
+            'SELECT TABLE_NAME
+             FROM information_schema.TABLES
+             WHERE TABLE_SCHEMA = ?
+               AND TABLE_NAME LIKE ?
+             ORDER BY TABLE_NAME',
+            [
+                $this->db->database,
+                $prefix === ''
+                    ? '%'
+                    : $this->escape_like_pattern(
+                        $prefix
+                    ) . '%',
+            ]
+        );
+
+        return array_map(
+            static fn(array $row): string =>
+                (string) $row['TABLE_NAME'],
+            $query->result_array()
+        );
+    }
+
+    private function escape_like_pattern(
+        string $value
+    ): string {
+        return str_replace(
+            ['\\', '%', '_'],
+            ['\\\\', '\\%', '\\_'],
+            $value
+        );
+    }
+
+    private function write_database_prefix(
+        string $prefix
+    ): void {
+        $config_path = FCPATH . 'config.php';
+
+        if (!is_file($config_path)) {
+            throw new RuntimeException(
+                'Die Konfigurationsdatei config.php wurde nicht gefunden.'
+            );
+        }
+
+        if (!is_writable($config_path)) {
+            throw new RuntimeException(
+                'Die Konfigurationsdatei config.php ist nicht beschreibbar.'
+            );
+        }
+
+        $contents = file_get_contents($config_path);
+
+        if ($contents === false) {
+            throw new RuntimeException(
+                'Die Konfigurationsdatei konnte nicht gelesen werden.'
+            );
+        }
+
+        $replacement =
+            "const DB_PREFIX = '" .
+            addslashes($prefix) .
+            "';";
+
+        $updated = preg_replace(
+            "/const\\s+DB_PREFIX\\s*=\\s*'[^']*';/",
+            $replacement,
+            $contents,
+            1,
+            $count
+        );
+
+        if (
+            $updated === null ||
+            $count !== 1
+        ) {
+            throw new RuntimeException(
+                'DB_PREFIX konnte in config.php nicht eindeutig aktualisiert werden.'
+            );
+        }
+
+        $temporary_path =
+            $config_path . '.tmp-' . bin2hex(
+                random_bytes(6)
+            );
+
+        if (
+            file_put_contents(
+                $temporary_path,
+                $updated,
+                LOCK_EX
+            ) === false
+        ) {
+            throw new RuntimeException(
+                'Die temporäre Konfigurationsdatei konnte nicht geschrieben werden.'
+            );
+        }
+
+        if (!rename($temporary_path, $config_path)) {
+            @unlink($temporary_path);
+
+            throw new RuntimeException(
+                'Die aktualisierte Konfiguration konnte nicht aktiviert werden.'
+            );
+        }
+    }
+
 }

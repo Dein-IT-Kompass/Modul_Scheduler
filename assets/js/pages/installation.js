@@ -31,6 +31,9 @@ App.Pages.Installation = (function () {
     const $companyName = $('#company-name');
     const $companyEmail = $('#company-email');
     const $companyLink = $('#company-link');
+    const $databasePrefix = $('#database-prefix');
+    const $databasePrefixWrapper =
+        $('#database-prefix-wrapper');
 
     $(document).ajaxStart(() => {
         $loading.removeClass('d-none');
@@ -56,6 +59,7 @@ App.Pages.Installation = (function () {
             company: getCompanyData(),
             enabled_modules: getEnabledModules(),
             resource_icon_packs: getResourceIconPacks(),
+            database: getDatabaseData(),
         };
 
         $.ajax({
@@ -144,6 +148,30 @@ App.Pages.Installation = (function () {
                 );
             }
 
+            const databaseMode =
+                $('.database-mode:checked').val();
+
+            if (
+                databaseMode === 'prefixed'
+            ) {
+                const prefix =
+                    $databasePrefix.val().trim();
+
+                if (
+                    !/^[A-Za-z][A-Za-z0-9_]{0,30}_?$/.test(
+                        prefix
+                    )
+                ) {
+                    $databasePrefix.addClass(
+                        'is-invalid'
+                    );
+
+                    throw new Error(
+                        'Das Tabellenpräfix muss mit einem Buchstaben beginnen und darf nur Buchstaben, Zahlen und Unterstriche enthalten.'
+                    );
+                }
+            }
+
             // Validate Passwords
             if ($password.val() !== $passwordConfirm.val()) {
                 $password.addClass('is-invalid');
@@ -197,6 +225,42 @@ App.Pages.Installation = (function () {
             language: $language.val(),
         };
     }
+
+    function getDatabaseData() {
+        return {
+            mode:
+                $('.database-mode:checked').val(),
+            prefix:
+                $databasePrefix.val().trim(),
+        };
+    }
+
+    function updateDatabaseMode() {
+        const prefixed =
+            $('.database-mode:checked').val() ===
+            'prefixed';
+
+        $databasePrefixWrapper.toggleClass(
+            'd-none',
+            !prefixed
+        );
+
+        $databasePrefix
+            .prop('disabled', !prefixed)
+            .toggleClass('required', prefixed);
+
+        if (!prefixed) {
+            $databasePrefix
+                .removeClass('is-invalid');
+        }
+    }
+
+    $('.database-mode').on(
+        'change',
+        updateDatabaseMode
+    );
+
+    updateDatabaseMode();
 
     function getResourceIconPacks() {
         const packs = ['core'];

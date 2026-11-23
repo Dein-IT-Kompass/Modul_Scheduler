@@ -162,6 +162,90 @@
                 </div>
             </div>
 
+            <div class="card mb-5"
+                 id="database-installation-settings">
+                <div class="card-header">
+                    <strong>Datenbankeinrichtung</strong>
+                </div>
+
+                <div class="card-body">
+                    <p class="text-muted">
+                        MODUL-Scheduler verwendet die in
+                        <code>config.php</code> konfigurierte Datenbank.
+                        Wählen Sie, ob der gesamte leere Datenbankbereich
+                        oder ein eigener Tabellenpräfix verwendet werden soll.
+                    </p>
+
+                    <div class="form-check mb-3">
+                        <input type="radio"
+                               class="form-check-input database-mode"
+                               id="database-mode-empty"
+                               name="database-mode"
+                               value="empty">
+
+                        <label class="form-check-label"
+                               for="database-mode-empty">
+                            <strong>
+                                Neue oder vollständig leere Datenbank
+                            </strong>
+                            <br>
+                            <small class="text-muted">
+                                Es dürfen noch keine Tabellen in der
+                                konfigurierten Datenbank vorhanden sein.
+                            </small>
+                        </label>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input type="radio"
+                               class="form-check-input database-mode"
+                               id="database-mode-prefixed"
+                               name="database-mode"
+                               value="prefixed"
+                               checked>
+
+                        <label class="form-check-label"
+                               for="database-mode-prefixed">
+                            <strong>
+                                Bestehende Datenbank mit eigenem Tabellenpräfix
+                            </strong>
+                            <br>
+                            <small class="text-muted">
+                                Andere Installationen in derselben Datenbank
+                                bleiben vollständig unangetastet.
+                            </small>
+                        </label>
+                    </div>
+
+                    <div id="database-prefix-wrapper">
+                        <label for="database-prefix"
+                               class="form-label">
+                            Tabellenpräfix
+                            <span class="text-danger">*</span>
+                        </label>
+
+                        <input id="database-prefix"
+                               class="form-control required"
+                               maxlength="32"
+                               value="ms_"
+                               placeholder="z. B. back54_"
+                               autocomplete="off">
+
+                        <div class="form-text">
+                            Erlaubt sind Buchstaben, Zahlen und Unterstriche.
+                            Der Installer ergänzt bei Bedarf automatisch
+                            einen abschließenden Unterstrich.
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning mt-3 mb-0">
+                        Vorhandene Tabellen werden niemals automatisch
+                        gelöscht oder überschrieben. Bei einer Kollision
+                        wird die Installation abgebrochen.
+                    </div>
+                </div>
+            </div>
+
             <div class="card mb-5">
                 <div class="card-header">
                     <strong>Branchenausstattung und Symbolpakete</strong>
