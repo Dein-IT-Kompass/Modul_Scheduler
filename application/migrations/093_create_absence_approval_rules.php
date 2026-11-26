@@ -42,14 +42,12 @@ class Migration_Create_absence_approval_rules extends EA_Migration
             'id_users_employee' => [
                 'type' => 'INT',
                 'constraint' => 11,
-                'unsigned' => true,
                 'null' => false,
             ],
 
             'id_users_approver' => [
                 'type' => 'INT',
                 'constraint' => 11,
-                'unsigned' => true,
                 'null' => false,
             ],
 

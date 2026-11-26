@@ -119,54 +119,106 @@
                                  class="d-flex flex-wrap gap-2">
 
                                 <?php
-                                $resource_icons = [
-                                    // Allgemein
-                                    'fa-box',
-                                    'fa-boxes',
-                                    'fa-pallet',
-                                    'fa-dolly',
+                                $configured_packs = json_decode(
+                                    (string) setting(
+                                        'resource_icon_packs'
+                                    ),
+                                    true
+                                );
 
-                                    // Fahrzeuge / Bau / Handwerk
-                                    'fa-car',
-                                    'fa-truck',
-                                    'fa-trailer',
-                                    'fa-tractor',
-                                    'fa-tools',
-                                    'fa-toolbox',
-                                    'fa-wrench',
-                                    'fa-hard-hat',
-                                    'fa-plug',
+                                $configured_packs = is_array(
+                                    $configured_packs
+                                )
+                                    ? $configured_packs
+                                    : ['core'];
 
-                                    // Kleine / grosse Gebaeude und Raeume
-                                    'fa-home',
-                                    'fa-building',
-                                    'fa-warehouse',
-                                    'fa-door-open',
+                                if (
+                                    !in_array(
+                                        'core',
+                                        $configured_packs,
+                                        true
+                                    )
+                                ) {
+                                    array_unshift(
+                                        $configured_packs,
+                                        'core'
+                                    );
+                                }
 
-                                    // Reinigung
-                                    'fa-broom',
-                                    'fa-spray-can',
-                                    'fa-pump-soap',
-                                    'fa-soap',
+                                $icon_packs = [
+                                    'core' => [
+                                        'fa-box',
+                                        'fa-boxes',
+                                        'fa-pallet',
+                                        'fa-dolly',
+                                        'fa-home',
+                                        'fa-building',
+                                        'fa-warehouse',
+                                        'fa-door-open',
+                                        'fa-chair',
+                                        'fa-desktop',
+                                        'fa-laptop',
+                                    ],
 
-                                    // Physiotherapie / Praxis
-                                    'fa-bed',
-                                    'fa-procedures',
-                                    'fa-user-md',
-                                    'fa-heartbeat',
-                                    'fa-notes-medical',
+                                    'construction' => [
+                                        'fa-car',
+                                        'fa-truck',
+                                        'fa-trailer',
+                                        'fa-tractor',
+                                        'fa-tools',
+                                        'fa-toolbox',
+                                        'fa-wrench',
+                                        'fa-hard-hat',
+                                        'fa-plug',
+                                    ],
 
-                                    // Training / Therapie
-                                    'fa-dumbbell',
-                                    'fa-bicycle',
-                                    'fa-walking',
-                                    'fa-running',
+                                    'cleaning' => [
+                                        'fa-broom',
+                                        'fa-spray-can',
+                                        'fa-pump-soap',
+                                        'fa-soap',
+                                    ],
 
-                                    // Arbeitsplatz / Ausstattung
-                                    'fa-chair',
-                                    'fa-desktop',
-                                    'fa-laptop',
+                                    'physiotherapy' => [
+                                        'fa-bed',
+                                        'fa-procedures',
+                                        'fa-user-md',
+                                        'fa-heartbeat',
+                                        'fa-notes-medical',
+                                        'fa-dumbbell',
+                                    ],
+
+                                    'dance' => [
+                                        'fa-walking',
+                                        'fa-running',
+                                        'fa-heartbeat',
+                                    ],
                                 ];
+
+                                $resource_icons = [];
+
+                                foreach (
+                                    $configured_packs as $pack
+                                ) {
+                                    if (
+                                        empty(
+                                            $icon_packs[$pack]
+                                        )
+                                    ) {
+                                        continue;
+                                    }
+
+                                    $resource_icons = array_merge(
+                                        $resource_icons,
+                                        $icon_packs[$pack]
+                                    );
+                                }
+
+                                $resource_icons = array_values(
+                                    array_unique(
+                                        $resource_icons
+                                    )
+                                );
                                 ?>
 
                                 <?php foreach ($resource_icons as $resource_icon): ?>

@@ -33,7 +33,14 @@ class Installation extends EA_Controller
         $this->load->model('providers_model');
         $this->load->model('customers_model');
 
-        $this->load->library('instance');
+        // WICHTIG:
+        // Die Instance-Library lädt ihrerseits die Migration-Library.
+        // Dadurch würde bereits beim bloßen Öffnen des Installers
+        // die Migrations-Tabelle im aktuell konfigurierten Namespace
+        // angelegt werden.
+        //
+        // Instance wird deshalb erst in perform() geladen, nachdem
+        // Datenbankmodus und Tabellenpräfix validiert wurden.
     }
 
     /**
@@ -92,6 +99,15 @@ if (is_app_partially_installed()) {
 
             $this->configure_database_namespace(
                 $database
+            );
+
+            // Die Instance- und Migration-Libraries werden bewusst
+            // erst jetzt geladen. Zu diesem Zeitpunkt steht der endgültige
+            // Tabellenpräfix bereits fest.
+            $this->load->library(
+                'instance',
+                null,
+                'instance'
             );
 
 
@@ -359,6 +375,10 @@ if (is_app_partially_installed()) {
         // Die aktuelle Anfrage läuft bereits mit einer geöffneten
         // CodeIgniter-Datenbankverbindung. Für die Migration muss
         // deshalb auch die aktive Verbindung umgestellt werden.
+        // Ab diesem Punkt benutzt auch die bereits bestehende
+        // CodeIgniter-Datenbankverbindung den ausgewählten Namespace.
+        // Die Migration-Library wurde zu diesem Zeitpunkt bewusst
+        // noch nicht geladen.
         $this->db->dbprefix = $prefix;
     }
 

@@ -302,7 +302,7 @@
                         </label>
                     </div>
 
-                    <div class="form-check">
+                    <div class="form-check mb-3">
                         <input type="checkbox"
                                class="form-check-input resource-icon-pack"
                                id="icon-pack-physiotherapy"
@@ -315,9 +315,8 @@
                             </small>
                         </label>
                     </div>
-                </div>
 
-                    <div class="form-check mt-3">
+                    <div class="form-check">
                         <input type="checkbox"
                                class="form-check-input resource-icon-pack"
                                id="icon-pack-dance"
